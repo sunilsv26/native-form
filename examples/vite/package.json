@@ -8,10 +8,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@native-form/core": "workspace:^",
+    "@native-form/react": "workspace:^",
+    "@native-form/zod": "workspace:*",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "@native-form/core": "workspace:^",
-    "@native-form/react": "workspace:^"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",

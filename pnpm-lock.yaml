@@ -32,12 +32,18 @@ importers:
       '@native-form/react':
         specifier: workspace:^
         version: link:../../packages/react
+      '@native-form/zod':
+        specifier: workspace:*
+        version: link:../../packages/zod
       react:
         specifier: ^18.0.0
         version: 18.3.1
       react-dom:
         specifier: ^18.0.0
         version: 18.3.1(react@18.3.1)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@vitejs/plugin-react':
         specifier: ^4.0.0
@@ -73,7 +79,14 @@ importers:
         specifier: ^19.0.0
         version: 19.2.7(react@19.2.7)
 
-  packages/zod: {}
+  packages/zod:
+    dependencies:
+      '@native-form/core':
+        specifier: workspace:*
+        version: link:../core
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
 packages:
 
@@ -1023,6 +1036,9 @@ packages:
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
 
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+
 snapshots:
 
   '@asamuzakjp/css-color@3.2.0':
@@ -1869,3 +1885,5 @@ snapshots:
   xmlchars@2.2.0: {}
 
   yallist@3.1.1: {}
+
+  zod@4.4.3: {}

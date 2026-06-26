@@ -1,19 +1,14 @@
 import { NativeFormElement } from "./types";
 
 export class FieldNode {
-  readonly name: string;
-  readonly element: NativeFormElement;
+  constructor(public readonly element: NativeFormElement) {}
 
-  touched = false;
-  dirty = false;
-
-  constructor(element: NativeFormElement) {
-    this.element = element;
-    this.name = element.name;
+  get name() {
+    return this.element.name;
   }
 
   get tag() {
-    return this.element.tagName;
+    return this.element.tagName.toLowerCase();
   }
 
   get type() {
@@ -40,7 +35,7 @@ export class FieldNode {
         case "number":
           return this.element.value === ""
             ? undefined
-            : Number(this.element.value);
+            : this.element.valueAsNumber;
 
         case "file":
           return this.element.files;
@@ -51,13 +46,9 @@ export class FieldNode {
     }
 
     if (this.element instanceof HTMLSelectElement) {
-      if (this.element.multiple) {
-        return Array.from(this.element.selectedOptions).map(
-          (option) => option.value,
-        );
-      }
-
-      return this.element.value;
+      return this.element.multiple
+        ? Array.from(this.element.selectedOptions).map((o) => o.value)
+        : this.element.value;
     }
 
     return this.element.value;
@@ -69,22 +60,5 @@ export class FieldNode {
 
   blur() {
     this.element.blur();
-  }
-
-  reset() {
-    if (this.element instanceof HTMLInputElement) {
-      switch (this.element.type) {
-        case "checkbox":
-          this.element.checked = false;
-          break;
-
-        default:
-          this.element.value = "";
-      }
-
-      return;
-    }
-
-    this.element.value = "";
   }
 }

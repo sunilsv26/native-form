@@ -1,0 +1,484 @@
+# Native Form Architecture
+
+> Native HTML first. Headless by default. Zero registration.
+
+---
+
+# Vision
+
+Modern React form libraries require developers to teach the library about every field.
+
+Examples:
+
+- register("email")
+- Controller
+- <Field>
+- useField
+
+Native Form takes a different approach.
+
+The browser already knows every form control.
+
+Instead of registering fields manually, Native Form discovers them automatically using the DOM.
+
+Developers should write HTML first.
+
+```tsx
+<Form onSubmit={console.log}>
+  <input name="email" />
+  <input name="password" />
+  <button>Submit</button>
+</Form>
+```
+
+No registration.
+
+No controllers.
+
+No field wrappers.
+
+---
+
+# Core Principles
+
+## 1. Native HTML First
+
+HTML forms already solve:
+
+- focus
+- keyboard navigation
+- accessibility
+- FormData
+- browser validation
+- autofill
+- password managers
+
+The library should extend browser capabilities instead of replacing them.
+
+---
+
+## 2. Zero Registration
+
+Every named control inside a form is automatically discovered.
+
+```html
+<input name="email" />
+```
+
+is enough.
+
+No
+
+```tsx
+register("email");
+```
+
+ever.
+
+---
+
+## 3. Headless by Default
+
+Native Form owns no UI.
+
+It exposes behavior only.
+
+Users remain free to use:
+
+- Native HTML
+- MUI
+- Chakra
+- Radix
+- Shadcn
+- Tailwind
+- Any design system
+
+---
+
+## 4. Runtime Driven
+
+The browser is the source of truth.
+
+React state is not.
+
+```
+DOM
+ ↓
+Runtime
+ ↓
+Subscribers
+```
+
+Runtime observes the form.
+
+React consumes Runtime.
+
+Never the other way around.
+
+---
+
+## 5. Progressive Enhancement
+
+The library should continue working with standard HTML semantics.
+
+Forms should still submit correctly if JavaScript enhancements are removed.
+
+---
+
+# Current Architecture
+
+```
+Browser
+
+        │
+
+        ▼
+
+HTMLFormElement
+
+        │
+
+        ▼
+
+Runtime
+
+ ┌──────┼─────────┐
+
+ ▼      ▼         ▼
+
+Discovery Registry Serializer
+
+```
+
+Current responsibilities:
+
+## Discovery
+
+Find every form control.
+
+Input:
+
+```
+HTMLFormElement
+```
+
+Output:
+
+```
+FieldNode[]
+```
+
+---
+
+## Registry
+
+Stores discovered fields.
+
+Provides lookup.
+
+```
+registry.get("email")
+```
+
+---
+
+## Serializer
+
+Converts browser FormData into JavaScript values.
+
+```
+FormData
+
+↓
+
+Object
+```
+
+---
+
+## Runtime
+
+Coordinates everything.
+
+Responsibilities:
+
+- mount
+- unmount
+- discover
+- serialize
+
+Future:
+
+- subscriptions
+- validation
+- dirty tracking
+- touched tracking
+
+---
+
+# Public API
+
+Current
+
+```tsx
+<Form onSubmit={(values) => {}}>
+  <input name="email" />
+</Form>
+```
+
+Future
+
+```tsx
+const form = useForm();
+
+const email = useField("email");
+```
+
+These APIs should remain optional.
+
+The HTML API must always remain first-class.
+
+---
+
+# Why Runtime Instead of React State?
+
+React state duplicates browser state.
+
+```
+DOM
+
+↓
+
+React State
+
+↓
+
+Library State
+
+↓
+
+Validation State
+```
+
+Native Form removes unnecessary layers.
+
+```
+DOM
+
+↓
+
+Runtime
+```
+
+One source of truth.
+
+---
+
+# Event Flow (Next Milestone)
+
+```
+User types
+
+↓
+
+Browser
+
+↓
+
+Runtime
+
+↓
+
+Emitter
+
+↓
+
+Subscribers
+
+↓
+
+React
+```
+
+Everything builds on subscriptions.
+
+Examples:
+
+Validation
+
+```
+change
+
+↓
+
+validate
+```
+
+Dirty State
+
+```
+change
+
+↓
+
+dirty
+```
+
+Watch
+
+```
+change
+
+↓
+
+subscriber
+```
+
+Plugins
+
+```
+Runtime
+
+↓
+
+events
+
+↓
+
+plugin
+```
+
+---
+
+# Package Layout
+
+```
+packages/
+
+core/
+
+react/
+
+zod/
+
+examples/
+```
+
+## @native-form/core
+
+Framework independent.
+
+Contains:
+
+- Runtime
+- Discovery
+- Registry
+- Serializer
+
+No React imports.
+
+---
+
+## @native-form/react
+
+React adapter.
+
+Contains:
+
+- Form
+- Hooks
+- Context
+
+No business logic.
+
+---
+
+## @native-form/zod
+
+Validation adapter.
+
+Contains only schema integration.
+
+---
+
+# Non Goals
+
+Native Form is not trying to replace HTML.
+
+Native Form is not a UI library.
+
+Native Form is not a component library.
+
+Native Form is not tied to React.
+
+---
+
+# Roadmap
+
+## Milestone 1 ✅
+
+- Monorepo
+- Runtime
+- Discovery
+- Serializer
+- React Form
+
+---
+
+## Milestone 2
+
+- Event Emitter
+- Runtime subscriptions
+
+---
+
+## Milestone 3
+
+- useForm()
+- useField()
+
+---
+
+## Milestone 4
+
+- Validation
+- Zod adapter
+
+---
+
+## Milestone 5
+
+- Nested objects
+- Arrays
+
+---
+
+## Milestone 6
+
+- Dynamic fields
+- MutationObserver
+
+---
+
+## Milestone 7
+
+- Controlled component adapter
+
+---
+
+# Engineering Principles
+
+- Browser APIs over custom abstractions.
+- Composition over configuration.
+- Zero-cost abstractions whenever possible.
+- Keep the public API small.
+- Prefer standards over framework-specific behavior.
+- Build features incrementally without breaking existing APIs.
+
+---
+
+# Success Criteria
+
+A developer should be able to build a complete form using only standard HTML.
+
+The library should add capabilities, not complexity.

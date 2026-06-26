@@ -30,4 +30,8 @@ export class FieldRegistry {
   get size(): number {
     return this.fields.size;
   }
+
+  getAll(): FieldNode[] {
+    return Array.from(this.fields.values());
+  }
 }

@@ -1,37 +1,56 @@
 import {
-  FormEvent,
   FormHTMLAttributes,
   PropsWithChildren,
   useLayoutEffect,
   useRef,
 } from "react";
 
-import { Runtime } from "@native-form/core";
+import {
+  InferSchemaOutput,
+  NativeFormValues,
+  Runtime,
+  SchemaLike,
+} from "@native-form/core";
 
-export interface FormProps extends Omit<
-  FormHTMLAttributes<HTMLFormElement>,
-  "onSubmit"
-> {
+export interface FormProps<
+  TSchema extends SchemaLike | undefined = undefined,
+  TValues extends NativeFormValues = TSchema extends SchemaLike
+    ? InferSchemaOutput<TSchema>
+    : NativeFormValues,
+> extends Omit<FormHTMLAttributes<HTMLFormElement>, "onSubmit"> {
+  schema?: TSchema;
   onSubmit?: (
-    values: Record<string, FormDataEntryValue>,
-    event: FormEvent<HTMLFormElement>,
-  ) => void;
+    values: TValues,
+    event?: SubmitEvent,
+  ) => void | Promise<void>;
 }
 
-export function Form({
+export function Form<
+  TSchema extends SchemaLike | undefined = undefined,
+  TValues extends NativeFormValues = TSchema extends SchemaLike
+    ? InferSchemaOutput<TSchema>
+    : NativeFormValues,
+>({
   children,
+  schema,
   onSubmit,
   ...props
-}: PropsWithChildren<FormProps>) {
+}: PropsWithChildren<FormProps<TSchema, TValues>>) {
   const formRef = useRef<HTMLFormElement>(null);
-  const runtimeRef = useRef<Runtime | null>(null);
+  const runtimeRef = useRef<Runtime<TValues> | null>(null);
+  const onSubmitRef = useRef(onSubmit);
+
+  onSubmitRef.current = onSubmit;
 
   useLayoutEffect(() => {
     if (!formRef.current) {
       return;
     }
 
-    const runtime = new Runtime();
+    const runtime = new Runtime<TValues>({
+      schema: schema as SchemaLike<TValues> | undefined,
+      onSubmit: (values, event) => onSubmitRef.current?.(values, event),
+    });
 
     runtime.mount(formRef.current);
 
@@ -40,22 +59,10 @@ export function Form({
     return () => {
       runtime.unmount();
     };
-  }, []);
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!runtimeRef.current) {
-      return;
-    }
-
-    const values = runtimeRef.current.serialize();
-
-    onSubmit?.(values, event);
-  }
+  }, [schema]);
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} {...props}>
+    <form ref={formRef} {...props}>
       {children}
     </form>
   );

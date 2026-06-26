@@ -2,6 +2,11 @@ import { NativeFormElement } from "./types";
 
 export class FieldNode {
   constructor(public readonly element: NativeFormElement) {}
+  private dirty = false;
+
+  private touched = false;
+
+  private mounted = true;
 
   get name() {
     return this.element.name;
@@ -60,5 +65,33 @@ export class FieldNode {
 
   blur() {
     this.element.blur();
+  }
+
+  get isDirty() {
+    return this.dirty;
+  }
+
+  get isTouched() {
+    return this.touched;
+  }
+
+  get isMounted() {
+    return this.mounted;
+  }
+
+  markDirty() {
+    this.dirty = true;
+  }
+
+  markTouched() {
+    this.touched = true;
+  }
+
+  mount() {
+    this.mounted = true;
+  }
+
+  unmount() {
+    this.mounted = false;
   }
 }

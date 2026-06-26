@@ -1,11 +1,15 @@
+import { NativeFormValues } from "./types";
+
 export class Serializer {
-  serialize(form: HTMLFormElement): Record<string, FormDataEntryValue> {
+  serialize(form: HTMLFormElement): NativeFormValues {
     const formData = new FormData(form);
 
-    const values: Record<string, FormDataEntryValue> = {};
+    const values: NativeFormValues = {};
 
-    for (const [key, value] of formData.entries()) {
-      values[key] = value;
+    for (const key of new Set(formData.keys())) {
+      const entries = formData.getAll(key);
+
+      values[key] = entries.length === 1 ? entries[0] : entries;
     }
 
     return values;

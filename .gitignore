@@ -1,0 +1,30 @@
+# dependencies
+node_modules
+
+# pnpm store
+.pnpm
+
+# build outputs
+dist
+**/dist
+
+# Turbo cache
+.turbo
+
+# local env files
+.env
+.env.*.local
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# system files
+.DS_Store
+Thumbs.db
+
+# editor folders
+.vscode/
+.idea/

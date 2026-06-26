@@ -1,0 +1,33 @@
+import { FieldNode } from "./FieldNode";
+
+export class FieldRegistry {
+  private readonly fields = new Map<string, FieldNode>();
+
+  register(field: FieldNode): void {
+    this.fields.set(field.name, field);
+  }
+
+  unregister(name: string): void {
+    this.fields.delete(name);
+  }
+
+  get(name: string): FieldNode | undefined {
+    return this.fields.get(name);
+  }
+
+  has(name: string): boolean {
+    return this.fields.has(name);
+  }
+
+  values(): FieldNode[] {
+    return [...this.fields.values()];
+  }
+
+  clear(): void {
+    this.fields.clear();
+  }
+
+  get size(): number {
+    return this.fields.size;
+  }
+}

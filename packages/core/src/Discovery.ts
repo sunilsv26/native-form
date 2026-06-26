@@ -1,40 +1,22 @@
-import { FieldInfo, NativeFormElement } from "./types";
+import { FieldNode } from "./FieldNode";
+import { FieldRegistry } from "./FieldRegistry";
 
 export class Discovery {
-  discover(form: HTMLFormElement): FieldInfo[] {
-    const fields: FieldInfo[] = [];
+  discover(form: HTMLFormElement, registry: FieldRegistry): void {
+    registry.clear();
 
-    const controls = Array.from(form.elements);
-
-    for (const control of controls) {
+    for (const control of Array.from(form.elements)) {
       if (
         control instanceof HTMLInputElement ||
         control instanceof HTMLSelectElement ||
         control instanceof HTMLTextAreaElement
       ) {
-        if (!control.name) continue;
+        if (!control.name) {
+          continue;
+        }
 
-        fields.push({
-          name: control.name,
-          type: this.getType(control),
-          tag: control.tagName,
-          element: control,
-        });
+        registry.register(new FieldNode(control));
       }
     }
-
-    return fields;
-  }
-
-  private getType(element: NativeFormElement): string {
-    if (element instanceof HTMLInputElement) {
-      return element.type;
-    }
-
-    if (element instanceof HTMLSelectElement) {
-      return element.multiple ? "select-multiple" : "select";
-    }
-
-    return "textarea";
   }
 }

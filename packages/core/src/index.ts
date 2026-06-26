@@ -1,2 +1,4 @@
-export * from "./Discovery";
 export * from "./types";
+export * from "./FieldNode";
+export * from "./FieldRegistry";
+export * from "./Discovery";

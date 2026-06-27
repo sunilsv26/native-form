@@ -276,14 +276,14 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     const value = values[element.name];
 
     const node = this.registry.get(element.name);
-    // lifecycle: input/change -> update value
+    // lifecycle: input/change -> update value once
     if (event.type === "input") {
-      node?.handleInput();
+      node?.handleInput(value);
     } else if (event.type === "change") {
-      node?.handleChange();
+      node?.handleChange(value);
+    } else {
+      node?.updateValue(value);
     }
-
-    node?.updateValue(value);
 
     void this.runValidation(values).then(() => {
       this.options.onInvalid?.(this.errors, values);
@@ -300,6 +300,16 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
       value,
       values,
     });
+
+    // Normalized generic update signal for any value change source.
+    if (event.type === "input" || event.type === "change") {
+      this.notify({
+        type: "field:update",
+        field: element.name,
+        value,
+        values,
+      });
+    }
   };
 
   private handleFieldBlur = (event: Event) => {

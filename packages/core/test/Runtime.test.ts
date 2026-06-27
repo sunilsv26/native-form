@@ -200,6 +200,38 @@ describe("Runtime", () => {
       field: "password",
     });
   });
+
+  it("emits normalized lifecycle events for field interactions", async () => {
+    const form = createForm('<input name="email" value="a@example.com" />');
+    const input = form.elements.namedItem("email") as HTMLInputElement;
+    const runtime = new Runtime();
+    const events: string[] = [];
+
+    runtime.subscribe((event) => {
+      events.push(event.type);
+    });
+    runtime.mount(form);
+
+    input.value = "next@example.com";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    input.dispatchEvent(new FocusEvent("blur", { bubbles: true }));
+
+    form.reset();
+    await Promise.resolve();
+
+    await runtime.submit();
+    runtime.unmount();
+
+    expect(events).toContain("field:input");
+    expect(events).toContain("field:change");
+    expect(events).toContain("field:update");
+    expect(events).toContain("field:blur");
+    expect(events).toContain("field:reset");
+    expect(events).toContain("field:submit");
+    expect(events).toContain("field:unmount");
+  });
 });
 
 function createForm(markup: string): HTMLFormElement {

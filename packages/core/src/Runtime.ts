@@ -3,6 +3,10 @@ import { FieldNode } from "./FieldNode";
 import { FieldRegistry } from "./FieldRegistry";
 import { Serializer } from "./Serializer";
 import {
+  createValidationPipeline,
+  ValidationPipeline,
+} from "./ValidationPipeline";
+import {
   NativeFormElement,
   NativeFormValue,
   NativeFormValues,
@@ -10,7 +14,6 @@ import {
   RuntimeListener,
 } from "./types";
 import {
-  createValidator,
   SchemaLike,
   ValidationIssue,
   ValidationResult,
@@ -22,6 +25,7 @@ export interface RuntimeOptions<
 > {
   schema?: SchemaLike<TValues>;
   validator?: Validator<TValues>;
+  pipeline?: ValidationPipeline<TValues>;
   onSubmit?: (values: TValues, event?: SubmitEvent) => void | Promise<void>;
   onInvalid?: (
     errors: Record<string, string>,
@@ -53,12 +57,15 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
 
   private errors: Record<string, string> = {};
 
-  private readonly validator?: Validator<TValues>;
+  private readonly pipeline: ValidationPipeline<TValues>;
 
   constructor(private readonly options: RuntimeOptions<TValues> = {}) {
-    const schema = options.schema ?? options.validator;
-
-    this.validator = schema ? createValidator(schema) : undefined;
+    this.pipeline =
+      options.pipeline ??
+      createValidationPipeline({
+        schema: options.schema,
+        validator: options.validator,
+      });
 
     // Subscribe to registry lifecycle changes so Runtime can emit events.
     this.registry.onChange = (e) => {
@@ -236,27 +243,11 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     }
     this.applyNativeErrors();
 
-    const nativeIssues = this.validator ? [] : this.getNativeValidationIssues();
-
-    if (nativeIssues.length > 0) {
-      const result: ValidationResult<TValues> = {
-        success: false,
-        issues: nativeIssues,
-      };
-
-      this.applyValidationResult(result, values);
-      this.validating = false;
-
-      return result;
-    }
-
-    const result = (await this.validator?.validate(values, {
+    const result = await this.pipeline.validate(values, {
       form: this.form,
       signal: this.validationController.signal,
-    })) ?? {
-      success: true,
-      values: values as TValues,
-    };
+      fields: this.registry.values(),
+    });
 
     if (!this.validationController.signal.aborted) {
       this.applyValidationResult(result, values);
@@ -510,23 +501,6 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     }
     this.applyNativeErrors();
     return true;
-  }
-
-  private getNativeValidationIssues(): ValidationIssue[] {
-    const issues: ValidationIssue[] = [];
-
-    for (const field of this.registry.values()) {
-      const validationMessage = field.element.validationMessage;
-
-      if (validationMessage) {
-        issues.push({
-          name: field.name,
-          message: validationMessage,
-        });
-      }
-    }
-
-    return issues;
   }
 }
 

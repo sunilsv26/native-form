@@ -6,3 +6,4 @@ export * from "./Discovery";
 export * from "./Runtime";
 export * from "./Serializer";
 export * from "./Validation";
+export * from "./ValidationPipeline";

@@ -224,13 +224,19 @@ describe("Runtime", () => {
     await runtime.submit();
     runtime.unmount();
 
-    expect(events).toContain("field:input");
-    expect(events).toContain("field:change");
-    expect(events).toContain("field:update");
-    expect(events).toContain("field:blur");
-    expect(events).toContain("field:reset");
-    expect(events).toContain("field:submit");
-    expect(events).toContain("field:unmount");
+    const fieldEvents = events.filter((type) => type.startsWith("field:"));
+
+    expect(fieldEvents).toEqual([
+      "field:mount",
+      "field:input",
+      "field:update",
+      "field:change",
+      "field:update",
+      "field:blur",
+      "field:reset",
+      "field:submit",
+      "field:unmount",
+    ]);
   });
 });
 

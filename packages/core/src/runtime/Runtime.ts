@@ -391,12 +391,12 @@ export class Runtime<
       signal: this.validationController.signal,
       fields: this.getValidationFields(),
     };
-    const activeField = this.toValidationField(field);
+    const activeFieldMeta = this.toValidationField(field);
     const supportsFieldScopedValidation =
       this.pipeline.capabilities?.supportsFieldScopedValidation ?? true;
 
     const result = supportsFieldScopedValidation
-      ? await this.pipeline.validateField(activeField, values, context)
+      ? await this.pipeline.validateField(activeFieldMeta, values, context)
       : await this.pipeline.validate(values, context);
 
     if (!this.validationController.signal.aborted) {
@@ -489,20 +489,24 @@ export class Runtime<
       return;
     }
 
-    const previous = new Set(this.registry.values().map((field) => field.name));
+    const previousFieldNames = new Set(
+      this.registry.values().map((field) => field.name),
+    );
 
     this.discovery.discover(this.form, this.registry);
 
     const values = this.serialize();
-    const next = new Set(this.registry.values().map((field) => field.name));
+    const nextFieldNames = new Set(
+      this.registry.values().map((field) => field.name),
+    );
 
     for (const field of this.registry.values()) {
       field.register(values[field.name]);
       // registry will emit mount notifications via `onChange`.
     }
 
-    for (const name of previous) {
-      if (next.has(name)) {
+    for (const name of previousFieldNames) {
+      if (nextFieldNames.has(name)) {
         continue;
       }
 

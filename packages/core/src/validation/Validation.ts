@@ -87,7 +87,7 @@ export function createValidator<TValues extends NativeFormValues>(
           return {
             success: false,
             issues: result.issues.map((issue) => ({
-              name: issuePathToName(issue.path),
+              name: schemaIssuePathToName(issue.path),
               message: issue.message,
             })),
           };
@@ -104,7 +104,7 @@ export function createValidator<TValues extends NativeFormValues>(
   return schema;
 }
 
-function issuePathToName(
+function schemaIssuePathToName(
   path: readonly (PropertyKey | { key: PropertyKey })[] | undefined,
 ): string {
   if (!path || path.length === 0) {

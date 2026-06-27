@@ -83,8 +83,10 @@ export function createValidationPipeline<
 >(
   options: ValidationPipelineOptions<TValues> = {},
 ): ValidationPipeline<TValues> {
-  const schema = options.schema ?? options.validator;
-  const validator = schema ? createValidator(schema) : undefined;
+  const schemaOrValidator = options.schema ?? options.validator;
+  const validator = schemaOrValidator
+    ? createValidator(schemaOrValidator)
+    : undefined;
 
   return {
     capabilities: {

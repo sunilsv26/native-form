@@ -105,6 +105,8 @@ Boundary guarantees:
 
 ## Related Modules
 
+- Lifecycle contract: docs/LIFECYCLE.md
+- Design specification: docs/DESIGN.md
 - Field nodes: docs/FIELDNODE.md
 - Validation contracts and pipeline: docs/VALIDATION.md
 - Architecture overview: docs/architecture.md

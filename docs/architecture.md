@@ -6,6 +6,8 @@ Contributor workflow and checklists: see [docs/CONTRIBUTING.md](CONTRIBUTING.md)
 
 Module deep-dives:
 
+- Design specification: [docs/DESIGN.md](DESIGN.md)
+- Lifecycle contract: [docs/LIFECYCLE.md](LIFECYCLE.md)
 - Runtime: [docs/RUNTIME.md](RUNTIME.md)
 - FieldNode: [docs/FIELDNODE.md](FIELDNODE.md)
 - Validation: [docs/VALIDATION.md](VALIDATION.md)

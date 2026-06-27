@@ -105,4 +105,43 @@ describe("ValidationPipeline", () => {
       issues: [{ name: "", message: "aborted" }],
     });
   });
+
+  it("prefers schema when both schema and validator are provided", async () => {
+    const schemaValidate = vi.fn(() => ({
+      value: { email: "schema@example.com" },
+    }));
+    const schema: StandardSchemaV1<{ email: FormDataEntryValue }> = {
+      "~standard": {
+        version: 1,
+        vendor: "test",
+        validate: schemaValidate,
+      },
+    };
+    const validator: Validator<{ email: FormDataEntryValue }> = {
+      validate: vi.fn(() => ({
+        success: true,
+        values: { email: "validator@example.com" },
+      })),
+    };
+
+    const pipeline = createValidationPipeline({ schema, validator });
+    const form = document.createElement("form");
+    const controller = new AbortController();
+
+    const result = await pipeline.validate(
+      { email: "input@example.com" },
+      {
+        form,
+        signal: controller.signal,
+        fields: [],
+      },
+    );
+
+    expect(schemaValidate).toHaveBeenCalledOnce();
+    expect(validator.validate).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      success: true,
+      values: { email: "schema@example.com" },
+    });
+  });
 });

@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import ReactDOM from "react-dom/client";
+import { arrayItemPath, formPath } from "@native-form/core";
 import { useField, useForm } from "@native-form/react";
 import { zodResolver } from "@native-form/zod";
 import { z } from "zod";
@@ -9,7 +10,16 @@ const loginSchema = z.object({
     email: z.string().email("Enter a valid email"),
     password: z.string().min(8, "Password must be at least 8 characters"),
   }),
+  teammates: z.array(
+    z.object({
+      email: z.string().email("Enter a valid teammate email"),
+    }),
+  ),
 });
+
+const USER_EMAIL = formPath("user", "email");
+const USER_PASSWORD = formPath("user", "password");
+const TEAMMATE_0_EMAIL = arrayItemPath("teammates", 0, "email");
 
 const FieldStatus = ({
   label,
@@ -46,8 +56,9 @@ const App = () => {
       alert("Login successful! Check console for values.");
     },
   });
-  const email = useField({ form, name: "user.email" });
-  const password = useField({ form, name: "user.password" });
+  const email = useField({ form, name: USER_EMAIL });
+  const password = useField({ form, name: USER_PASSWORD });
+  const teammateEmail = useField({ form, name: TEAMMATE_0_EMAIL });
 
   return (
     <div style={{ maxWidth: "400px", margin: "0 auto", padding: "20px" }}>
@@ -58,10 +69,10 @@ const App = () => {
         style={{ display: "flex", flexDirection: "column", gap: "16px" }}
       >
         <div>
-          <label htmlFor="user.email">Email:</label>
+          <label htmlFor={USER_EMAIL}>Email:</label>
           <input
-            id="user.email"
-            name="user.email"
+            id={USER_EMAIL}
+            name={USER_EMAIL}
             type="email"
             style={{
               width: "100%",
@@ -81,10 +92,10 @@ const App = () => {
         </div>
 
         <div>
-          <label htmlFor="user.password">Password:</label>
+          <label htmlFor={USER_PASSWORD}>Password:</label>
           <input
-            id="user.password"
-            name="user.password"
+            id={USER_PASSWORD}
+            name={USER_PASSWORD}
             type="password"
             style={{
               width: "100%",
@@ -100,6 +111,30 @@ const App = () => {
             touched={password.touched}
             dirty={password.dirty}
             error={password.error}
+          />
+        </div>
+
+        <div>
+          <label htmlFor={TEAMMATE_0_EMAIL}>Teammate Email:</label>
+          <input
+            id={TEAMMATE_0_EMAIL}
+            name={TEAMMATE_0_EMAIL}
+            type="email"
+            defaultValue="teammate@example.com"
+            style={{
+              width: "100%",
+              padding: "8px",
+              marginTop: "4px",
+              borderWidth: "1px",
+              borderStyle: "solid",
+              borderColor: "#ccc",
+            }}
+          />
+          <FieldStatus
+            label="Teammate Email"
+            touched={teammateEmail.touched}
+            dirty={teammateEmail.dirty}
+            error={teammateEmail.error}
           />
         </div>
 

@@ -5,5 +5,6 @@ export * from "./FieldRegistry";
 export * from "./Discovery";
 export * from "./Runtime";
 export * from "./Serializer";
+export * from "./Path";
 export * from "./Validation";
 export * from "./ValidationPipeline";

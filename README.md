@@ -4,7 +4,7 @@ Native HTML-first form runtime and adapters.
 
 ## Docs
 
-- Architecture: `docs/ARCHITECTURE.md`
+- Architecture: `docs/architecture.md`
 - Contributing guide: `docs/CONTRIBUTING.md`
 
 ## Packages
@@ -61,6 +61,34 @@ export function LoginForm() {
       <input name="email" type="email" />
       <button type="submit">Submit</button>
     </Form>
+  );
+}
+```
+
+Hooks example (`useForm` + `useField`):
+
+```tsx
+import { useMemo } from "react";
+import { useField, useForm } from "@native-form/react";
+import { zodResolver } from "@native-form/zod";
+import { z } from "zod";
+
+const schemaDef = z.object({
+  email: z.string().email("Invalid email"),
+});
+
+export function LoginForm() {
+  // Keep resolver identity stable to avoid unnecessary reconfiguration.
+  const schema = useMemo(() => zodResolver(schemaDef), []);
+  const form = useForm({ schema });
+  const email = useField({ form, name: "email" });
+
+  return (
+    <form ref={form.formRef} noValidate>
+      <input name="email" type="email" />
+      {email.error ? <p>{email.error}</p> : null}
+      <button type="submit">Submit</button>
+    </form>
   );
 }
 ```

@@ -525,7 +525,7 @@ Native Form is not tied to React.
 
 ---
 
-## Milestone 3 (In progress)
+## Milestone 3 ✅
 
 - useForm()
 - useField()

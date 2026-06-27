@@ -723,6 +723,45 @@ describe("Runtime", () => {
     });
   });
 
+  it("replaces a same-name control after mount and emits unmount/mount lifecycle events", async () => {
+    const form = createForm('<input name="email" value="a@example.com" />');
+    const runtime = new Runtime();
+    const events: string[] = [];
+
+    runtime.subscribe((event) => {
+      events.push(`${event.type}:${"field" in event ? event.field : ""}`);
+    });
+    runtime.mount(form);
+
+    const original = form.elements.namedItem("email") as HTMLInputElement;
+    original.remove();
+
+    const replacement = document.createElement("input");
+    replacement.name = "email";
+    replacement.value = "next@example.com";
+    form.append(replacement);
+
+    await Promise.resolve();
+
+    expect(runtime.serialize()).toEqual({
+      email: "next@example.com",
+    });
+    expect(runtime.getFieldState("email")).toMatchObject({
+      value: "next@example.com",
+      mounted: true,
+    });
+
+    const lifecycleEvents = events.filter(
+      (event) =>
+        event.startsWith("field:unmount:") || event.startsWith("field:mount:"),
+    );
+    expect(lifecycleEvents).toEqual([
+      "field:mount:email",
+      "field:unmount:email",
+      "field:mount:email",
+    ]);
+  });
+
   it("emits normalized lifecycle events for field interactions", async () => {
     const form = createForm('<input name="email" value="a@example.com" />');
     const input = form.elements.namedItem("email") as HTMLInputElement;

@@ -5,8 +5,10 @@ import { zodResolver } from "@native-form/zod";
 import { z } from "zod";
 
 const loginSchema = z.object({
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  user: z.object({
+    email: z.string().email("Enter a valid email"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+  }),
 });
 
 const FieldStatus = ({
@@ -44,8 +46,8 @@ const App = () => {
       alert("Login successful! Check console for values.");
     },
   });
-  const email = useField({ form, name: "email" });
-  const password = useField({ form, name: "password" });
+  const email = useField({ form, name: "user.email" });
+  const password = useField({ form, name: "user.password" });
 
   return (
     <div style={{ maxWidth: "400px", margin: "0 auto", padding: "20px" }}>
@@ -56,10 +58,10 @@ const App = () => {
         style={{ display: "flex", flexDirection: "column", gap: "16px" }}
       >
         <div>
-          <label htmlFor="email">Email:</label>
+          <label htmlFor="user.email">Email:</label>
           <input
-            id="email"
-            name="email"
+            id="user.email"
+            name="user.email"
             type="email"
             style={{
               width: "100%",
@@ -79,10 +81,10 @@ const App = () => {
         </div>
 
         <div>
-          <label htmlFor="password">Password:</label>
+          <label htmlFor="user.password">Password:</label>
           <input
-            id="password"
-            name="password"
+            id="user.password"
+            name="user.password"
             type="password"
             style={{
               width: "100%",

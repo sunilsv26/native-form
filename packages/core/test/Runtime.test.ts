@@ -259,6 +259,56 @@ describe("Runtime", () => {
     expect(runtime.getFormState().errors).toEqual({});
   });
 
+  it("emits stable event order across invalid then valid input recovery", async () => {
+    const form = createForm('<input name="email" value="" />');
+    const input = form.elements.namedItem("email") as HTMLInputElement;
+    const validator: Validator = {
+      validate: (values) => {
+        const email = String(values.email ?? "");
+
+        if (!email.includes("@")) {
+          return {
+            success: false,
+            issues: [{ name: "email", message: "Email is required" }],
+          };
+        }
+
+        return {
+          success: true,
+          values: { email },
+        };
+      },
+    };
+    const runtime = new Runtime({ validator });
+    const events: string[] = [];
+
+    runtime.subscribe((event) => {
+      events.push(event.type);
+    });
+    runtime.mount(form);
+
+    input.value = "invalid";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+
+    input.value = "user@example.com";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+
+    expect(events).toEqual([
+      "field:mount",
+      "form:mount",
+      "validation:start",
+      "field:input",
+      "field:update",
+      "validation:end",
+      "validation:start",
+      "field:input",
+      "field:update",
+      "validation:end",
+    ]);
+  });
+
   it("accepts a Standard Schema shaped validator", async () => {
     const form = createForm('<input name="email" value="a@example.com" />');
     const schema: StandardSchemaV1<{ email: FormDataEntryValue }> = {

@@ -14,19 +14,39 @@ export interface ValidationPipelineContext extends ValidationContext {
 }
 
 export interface ValidationPipelineCapabilities {
+  /**
+   * When true, Runtime will call `validateField` for input/change-triggered
+   * validation. When false, Runtime falls back to `validate` even for
+   * field-triggered events.
+   */
   supportsFieldScopedValidation: boolean;
 }
 
 export interface ValidationPipeline<
   TValues extends NativeFormValues = NativeFormValues,
 > {
+  /**
+   * Declares optional runtime behavior flags for how this pipeline wants to be
+   * invoked.
+   */
   readonly capabilities?: ValidationPipelineCapabilities;
 
+  /**
+   * Validates the full serialized values snapshot.
+   *
+   * Used for full-form validation flows (for example, submit).
+   */
   validate(
     values: NativeFormValues,
     context: ValidationPipelineContext,
   ): ValidationResult<TValues> | Promise<ValidationResult<TValues>>;
 
+  /**
+   * Validates a field-triggered update with access to the active field and the
+   * full serialized snapshot.
+   *
+   * Used for input/change-triggered validation when supported.
+   */
   validateField(
     field: FieldNode,
     values: NativeFormValues,

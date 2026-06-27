@@ -145,6 +145,120 @@ describe("Runtime", () => {
     expect(errorElement?.textContent).toBe("Email is required");
   });
 
+  it("applies inline error UI on change-triggered validation", async () => {
+    const form = createForm('<input name="email" value="" />');
+    const input = form.elements.namedItem("email") as HTMLInputElement;
+    const validator: Validator = {
+      validate: () => ({
+        success: false,
+        issues: [{ name: "email", message: "Email is required" }],
+      }),
+    };
+    const runtime = new Runtime({ validator });
+
+    runtime.mount(form);
+
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    await Promise.resolve();
+
+    const errorElement = input.nextElementSibling as HTMLElement;
+    expect(errorElement?.dataset.nativeFormError).toBe("true");
+    expect(errorElement?.textContent).toBe("Email is required");
+    expect(runtime.getFormState().errors).toEqual({
+      email: "Email is required",
+    });
+  });
+
+  it("clears inline error UI after subsequent successful change validation", async () => {
+    const form = createForm('<input name="email" value="" />');
+    const input = form.elements.namedItem("email") as HTMLInputElement;
+    const validator: Validator = {
+      validate: (values) => {
+        const email = String(values.email ?? "");
+
+        if (!email.includes("@")) {
+          return {
+            success: false,
+            issues: [{ name: "email", message: "Email is required" }],
+          };
+        }
+
+        return {
+          success: true,
+          values: { email },
+        };
+      },
+    };
+    const runtime = new Runtime({ validator });
+
+    runtime.mount(form);
+
+    // First change is invalid -> error should appear.
+    input.value = "invalid";
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    await Promise.resolve();
+
+    expect((input.nextElementSibling as HTMLElement)?.textContent).toBe(
+      "Email is required",
+    );
+    expect(runtime.getFormState().errors).toEqual({
+      email: "Email is required",
+    });
+
+    // Second change is valid -> error should clear.
+    input.value = "user@example.com";
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    await Promise.resolve();
+
+    expect(input.nextElementSibling).toBeNull();
+    expect(runtime.getFormState().errors).toEqual({});
+  });
+
+  it("clears inline error UI after subsequent successful input validation", async () => {
+    const form = createForm('<input name="email" value="" />');
+    const input = form.elements.namedItem("email") as HTMLInputElement;
+    const validator: Validator = {
+      validate: (values) => {
+        const email = String(values.email ?? "");
+
+        if (!email.includes("@")) {
+          return {
+            success: false,
+            issues: [{ name: "email", message: "Email is required" }],
+          };
+        }
+
+        return {
+          success: true,
+          values: { email },
+        };
+      },
+    };
+    const runtime = new Runtime({ validator });
+
+    runtime.mount(form);
+
+    // First input is invalid -> error should appear.
+    input.value = "invalid";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+
+    expect((input.nextElementSibling as HTMLElement)?.textContent).toBe(
+      "Email is required",
+    );
+    expect(runtime.getFormState().errors).toEqual({
+      email: "Email is required",
+    });
+
+    // Second input is valid -> error should clear.
+    input.value = "user@example.com";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+
+    expect(input.nextElementSibling).toBeNull();
+    expect(runtime.getFormState().errors).toEqual({});
+  });
+
   it("accepts a Standard Schema shaped validator", async () => {
     const form = createForm('<input name="email" value="a@example.com" />');
     const schema: StandardSchemaV1<{ email: FormDataEntryValue }> = {

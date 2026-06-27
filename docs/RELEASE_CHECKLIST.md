@@ -13,6 +13,9 @@ Use this checklist before tagging a release.
 - [ ] Runtime API contract tests pass.
 - [ ] Runtime public surface type contract passes.
 - [ ] Core public barrel export contract passes.
+- [ ] Legacy shim runtime symbol contract passes.
+- [ ] Legacy shim type parity contract passes.
+- [ ] Core public barrel type export contract passes.
 - [ ] Design and lifecycle docs remain consistent with implementation.
 
 ## Documentation

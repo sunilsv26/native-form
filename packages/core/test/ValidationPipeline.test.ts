@@ -34,6 +34,7 @@ describe("ValidationPipeline", () => {
       success: false,
       issues: [{ name: "email", message: "Email is required" }],
     });
+    expect(pipeline.capabilities?.supportsFieldScopedValidation).toBe(true);
   });
 
   it("uses native field-only validation in validateField", async () => {
@@ -210,5 +211,6 @@ describe("ValidationPipeline", () => {
       success: false,
       issues: [{ name: "email", message: "bad:x@example.com" }],
     });
+    expect(pipeline.capabilities?.supportsFieldScopedValidation).toBe(false);
   });
 });

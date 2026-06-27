@@ -13,9 +13,15 @@ export interface ValidationPipelineContext extends ValidationContext {
   fields: FieldNode[];
 }
 
+export interface ValidationPipelineCapabilities {
+  supportsFieldScopedValidation: boolean;
+}
+
 export interface ValidationPipeline<
   TValues extends NativeFormValues = NativeFormValues,
 > {
+  readonly capabilities?: ValidationPipelineCapabilities;
+
   validate(
     values: NativeFormValues,
     context: ValidationPipelineContext,
@@ -44,6 +50,10 @@ export function createValidationPipeline<
   const validator = schema ? createValidator(schema) : undefined;
 
   return {
+    capabilities: {
+      supportsFieldScopedValidation: !validator,
+    },
+
     async validate(values, context) {
       // No custom validator: rely on native browser validity.
       if (!validator) {

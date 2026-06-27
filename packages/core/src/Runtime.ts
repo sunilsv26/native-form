@@ -351,11 +351,17 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     }
     this.applyNativeErrors();
 
-    const result = await this.pipeline.validateField(field, values, {
+    const context = {
       form: this.form,
       signal: this.validationController.signal,
       fields: this.registry.values(),
-    });
+    };
+    const supportsFieldScopedValidation =
+      this.pipeline.capabilities?.supportsFieldScopedValidation ?? true;
+
+    const result = supportsFieldScopedValidation
+      ? await this.pipeline.validateField(field, values, context)
+      : await this.pipeline.validate(values, context);
 
     if (!this.validationController.signal.aborted) {
       this.applyValidationResult(result, values);

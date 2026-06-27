@@ -10,8 +10,6 @@ const loginSchema = z.object({
 });
 
 const App = () => {
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
   return (
     <div style={{ maxWidth: "400px", margin: "0 auto", padding: "20px" }}>
       <h1>Native Form Example</h1>
@@ -20,9 +18,6 @@ const App = () => {
         onSubmit={(values) => {
           console.log("SUBMIT:", values);
           alert("Login successful! Check console for values.");
-        }}
-        onInvalid={(formErrors) => {
-          setErrors(formErrors);
         }}
         noValidate
         style={{ display: "flex", flexDirection: "column", gap: "16px" }}
@@ -39,14 +34,9 @@ const App = () => {
               marginTop: "4px",
               borderWidth: "1px",
               borderStyle: "solid",
-              borderColor: errors.email ? "red" : "#ccc",
+              borderColor: "#ccc",
             }}
           />
-          {errors.email && (
-            <div style={{ color: "red", fontSize: "12px", marginTop: "4px" }}>
-              {errors.email}
-            </div>
-          )}
         </div>
 
         <div>
@@ -61,14 +51,9 @@ const App = () => {
               marginTop: "4px",
               borderWidth: "1px",
               borderStyle: "solid",
-              borderColor: errors.password ? "red" : "#ccc",
+              borderColor: "#ccc",
             }}
           />
-          {errors.password && (
-            <div style={{ color: "red", fontSize: "12px", marginTop: "4px" }}>
-              {errors.password}
-            </div>
-          )}
         </div>
 
         <div style={{ display: "flex", gap: "8px" }}>

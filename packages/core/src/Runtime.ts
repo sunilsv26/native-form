@@ -65,6 +65,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
   mount(form: HTMLFormElement) {
     this.form = form;
     this.syncFields();
+    normalizeErrorLabelsForRegistry(this.registry);
 
     const values = this.serialize();
 
@@ -246,7 +247,6 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
 
     return result;
   }
-
   private handleFieldUpdate = (event: Event) => {
     const element = toNativeFormElement(event.target);
 
@@ -388,14 +388,43 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     }
   }
 
-  private handleMutation = () => {
+  private handleMutation = (mutations: MutationRecord[]) => {
+    if (!mutations.some((mutation) => this.isRelevantMutation(mutation))) {
+      return;
+    }
+
     this.syncFields();
   };
+
+  private isRelevantMutation(mutation: MutationRecord): boolean {
+    if (mutation.type === "attributes") {
+      return isNativeFormControl(mutation.target as Node);
+    }
+
+    if (mutation.type === "childList") {
+      const nodes = [...mutation.addedNodes, ...mutation.removedNodes];
+
+      return nodes.some((node) => {
+        if (isErrorLabel(node)) {
+          return false;
+        }
+
+        return isNativeFormControl(node) || containsNativeFormControl(node);
+      });
+    }
+
+    return false;
+  }
 
   private applyValidationResult(
     result: ValidationResult<TValues>,
     values: NativeFormValues,
   ): void {
+    // Consolidate any duplicate/legacy inline error labels before applying
+    // the validation result so we don't accumulate duplicates during
+    // repeated validation runs.
+    normalizeErrorLabelsForRegistry(this.registry);
+
     this.errors = result.success ? {} : issuesToErrors(result.issues);
     this.fieldStateStore.setErrors(this.errors);
     this.applyNativeErrors();
@@ -408,8 +437,24 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
   }
 
   private applyNativeErrors(): void {
+    const observer = this.observer;
+
+    if (observer) {
+      observer.disconnect();
+    }
+
     for (const field of this.registry.values()) {
       field.element.setCustomValidity(this.errors[field.name] ?? "");
+      field.updateError(this.errors[field.name]);
+    }
+
+    if (observer && this.form) {
+      observer.observe(this.form, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["name", "disabled"],
+      });
     }
   }
 
@@ -451,6 +496,64 @@ function issuesToErrors(issues: ValidationIssue[]): Record<string, string> {
   }
 
   return errors;
+}
+
+// Consolidate legacy or duplicate inline error labels placed next to controls.
+function normalizeErrorLabelsForRegistry(registry: FieldRegistry) {
+  for (const field of registry.values()) {
+    let node = field.element.nextElementSibling;
+    const candidates: HTMLElement[] = [];
+
+    while (node) {
+      if (node instanceof HTMLElement) {
+        const id = node.id ?? "";
+        const aria = node.getAttribute("aria-live");
+
+        const isRuntimeLabel =
+          node.dataset.nativeFormError === "true" ||
+          id.startsWith("native-form-error-") ||
+          aria === "polite";
+
+        if (isRuntimeLabel) {
+          candidates.push(node);
+          node = node.nextElementSibling;
+          continue;
+        }
+      }
+
+      break;
+    }
+
+    if (candidates.length === 0) continue;
+
+    // Keep the first, remove the rest, and mark the kept node.
+    const keep = candidates[0];
+    for (let i = 1; i < candidates.length; i++) {
+      candidates[i].remove();
+    }
+
+    keep.dataset.nativeFormError = "true";
+    keep.setAttribute("data-for", field.name);
+  }
+}
+
+function isNativeFormControl(node: Node): boolean {
+  return (
+    node instanceof HTMLInputElement ||
+    node instanceof HTMLSelectElement ||
+    node instanceof HTMLTextAreaElement
+  );
+}
+
+function containsNativeFormControl(node: Node): boolean {
+  return (
+    node instanceof HTMLElement &&
+    Boolean(node.querySelector("input[name], select[name], textarea[name]"))
+  );
+}
+
+function isErrorLabel(node: Node): boolean {
+  return node instanceof HTMLElement && node.dataset.nativeFormError === "true";
 }
 
 function toNativeFormElement(

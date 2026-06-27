@@ -8,6 +8,12 @@ export class FieldRegistry {
   }
 
   unregister(name: string): void {
+    const field = this.fields.get(name);
+
+    if (field) {
+      field.removeErrorElement();
+    }
+
     this.fields.delete(name);
   }
 
@@ -24,6 +30,10 @@ export class FieldRegistry {
   }
 
   clear(): void {
+    for (const field of this.fields.values()) {
+      field.removeErrorElement();
+    }
+
     this.fields.clear();
   }
 

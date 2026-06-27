@@ -120,6 +120,30 @@ describe("Runtime", () => {
     );
   });
 
+  it("does not duplicate the same error message after repeated validation", async () => {
+    const form = createForm('<input name="email" value="" />');
+    const input = form.elements.namedItem("email") as HTMLInputElement;
+    const validator: Validator = {
+      validate: () => ({
+        success: false,
+        issues: [{ name: "email", message: "Email is required" }],
+      }),
+    };
+    const runtime = new Runtime({ validator });
+
+    runtime.mount(form);
+
+    await runtime.submit();
+    await runtime.submit();
+
+    expect(
+      form.querySelectorAll('div[data-native-form-error="true"]').length,
+    ).toBe(1);
+    const errorElement = input.nextElementSibling as HTMLElement;
+    expect(errorElement?.dataset.nativeFormError).toBe("true");
+    expect(errorElement?.textContent).toBe("Email is required");
+  });
+
   it("accepts a Standard Schema shaped validator", async () => {
     const form = createForm('<input name="email" value="a@example.com" />');
     const schema: StandardSchemaV1<{ email: FormDataEntryValue }> = {

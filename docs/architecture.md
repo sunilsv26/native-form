@@ -391,6 +391,10 @@ Contract rules:
 - Pipeline entrypoints:
   - `validate(values, context)` is used for full-form validation (e.g. submit).
   - `validateField(field, values, context)` is used for field-triggered validation (e.g. input/change).
+- Pipeline capabilities:
+  - `supportsFieldScopedValidation: true` means Runtime will call `validateField(...)` for input/change validation.
+  - `supportsFieldScopedValidation: false` means Runtime will fall back to `validate(...)` even for input/change.
+  - If omitted, Runtime treats capability as `true` for backward compatibility.
 - Default pipeline behavior:
   - Native mode validates only the active field in `validateField`.
   - Schema/validator mode currently validates the full snapshot even from `validateField`.

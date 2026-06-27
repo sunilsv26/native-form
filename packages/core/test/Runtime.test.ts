@@ -463,6 +463,37 @@ describe("Runtime", () => {
       email: "Global validation",
     });
   });
+
+  it("uses validateField (not validate) on input/change when field-scoped capability is true", async () => {
+    const form = createForm('<input name="email" value="" />');
+    const email = form.elements.namedItem("email") as HTMLInputElement;
+    const pipeline = {
+      capabilities: { supportsFieldScopedValidation: true },
+      validate: vi.fn(() => ({
+        success: false,
+        issues: [{ name: "email", message: "Global validation" }],
+      })),
+      validateField: vi.fn(() => ({
+        success: false,
+        issues: [{ name: "email", message: "Field validation" }],
+      })),
+    };
+    const runtime = new Runtime({ pipeline });
+
+    runtime.mount(form);
+
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+
+    email.dispatchEvent(new Event("change", { bubbles: true }));
+    await Promise.resolve();
+
+    expect(pipeline.validateField).toHaveBeenCalled();
+    expect(pipeline.validate).not.toHaveBeenCalled();
+    expect(runtime.getFormState().errors).toEqual({
+      email: "Field validation",
+    });
+  });
 });
 
 function createForm(markup: string): HTMLFormElement {

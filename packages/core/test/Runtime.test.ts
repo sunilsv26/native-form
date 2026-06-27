@@ -121,6 +121,292 @@ describe("Runtime", () => {
     );
   });
 
+  it("submits nested typed values from dotted field names", async () => {
+    const form = createForm(`
+      <input name="user.email" value="a@example.com" />
+      <input name="user.password" value="secret123" />
+    `);
+    const onSubmit = vi.fn();
+    const validator: Validator<{
+      user: { email: string; password: string };
+    }> = {
+      validate: (values) => ({
+        success: true,
+        values: {
+          user: {
+            email: String(values["user.email"] ?? ""),
+            password: String(values["user.password"] ?? ""),
+          },
+        },
+      }),
+    };
+    const runtime = new Runtime({ validator, onSubmit });
+
+    runtime.mount(form);
+
+    await expect(runtime.submit()).resolves.toEqual({
+      success: true,
+      values: {
+        user: {
+          email: "a@example.com",
+          password: "secret123",
+        },
+      },
+    });
+    expect(onSubmit).toHaveBeenCalledWith(
+      {
+        user: {
+          email: "a@example.com",
+          password: "secret123",
+        },
+      },
+      undefined,
+    );
+  });
+
+  it("projects dotted validation issues to form errors and matching field UI", async () => {
+    const form = createForm(`
+      <input name="user.email" value="not-an-email" />
+      <input name="user.password" value="secret123" />
+    `);
+    const email = form.elements.namedItem("user.email") as HTMLInputElement;
+    const validator: Validator = {
+      validate: () => ({
+        success: false,
+        issues: [{ name: "user.email", message: "Enter a valid email" }],
+      }),
+    };
+    const runtime = new Runtime({ validator });
+
+    runtime.mount(form);
+
+    await expect(runtime.submit()).resolves.toEqual({
+      success: false,
+      issues: [{ name: "user.email", message: "Enter a valid email" }],
+    });
+
+    expect(runtime.getFormState().errors).toEqual({
+      "user.email": "Enter a valid email",
+    });
+    expect(runtime.getFieldState("user.email")).toMatchObject({
+      error: "Enter a valid email",
+    });
+    expect(runtime.getFieldState("user.password")?.error).toBeUndefined();
+
+    expect(email.validationMessage).toBe("Enter a valid email");
+    const errorElement = email.nextElementSibling as HTMLElement;
+    expect(errorElement?.dataset.nativeFormError).toBe("true");
+    expect(errorElement?.textContent).toBe("Enter a valid email");
+  });
+
+  it("clears dotted field error UI after subsequent successful change validation", async () => {
+    const form = createForm(`
+      <input name="user.email" value="" />
+      <input name="user.password" value="secret123" />
+    `);
+    const email = form.elements.namedItem("user.email") as HTMLInputElement;
+    const validator: Validator = {
+      validate: (values) => {
+        const emailValue = String(values["user.email"] ?? "");
+
+        if (!emailValue.includes("@")) {
+          return {
+            success: false,
+            issues: [{ name: "user.email", message: "Enter a valid email" }],
+          };
+        }
+
+        return {
+          success: true,
+          values,
+        };
+      },
+    };
+    const runtime = new Runtime({ validator });
+
+    runtime.mount(form);
+
+    // First change is invalid -> dotted error should appear.
+    email.value = "invalid";
+    email.dispatchEvent(new Event("change", { bubbles: true }));
+    await Promise.resolve();
+
+    expect((email.nextElementSibling as HTMLElement)?.textContent).toBe(
+      "Enter a valid email",
+    );
+    expect(runtime.getFormState().errors).toEqual({
+      "user.email": "Enter a valid email",
+    });
+
+    // Second change is valid -> dotted error should clear.
+    email.value = "user@example.com";
+    email.dispatchEvent(new Event("change", { bubbles: true }));
+    await Promise.resolve();
+
+    expect(
+      form.querySelectorAll('div[data-native-form-error="true"]').length,
+    ).toBe(0);
+    expect(runtime.getFormState().errors).toEqual({});
+  });
+
+  it("clears dotted field error UI after subsequent successful input validation", async () => {
+    const form = createForm(`
+      <input name="user.email" value="" />
+      <input name="user.password" value="secret123" />
+    `);
+    const email = form.elements.namedItem("user.email") as HTMLInputElement;
+    const validator: Validator = {
+      validate: (values) => {
+        const emailValue = String(values["user.email"] ?? "");
+
+        if (!emailValue.includes("@")) {
+          return {
+            success: false,
+            issues: [{ name: "user.email", message: "Enter a valid email" }],
+          };
+        }
+
+        return {
+          success: true,
+          values,
+        };
+      },
+    };
+    const runtime = new Runtime({ validator });
+
+    runtime.mount(form);
+
+    // First input is invalid -> dotted error should appear.
+    email.value = "invalid";
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+
+    expect((email.nextElementSibling as HTMLElement)?.textContent).toBe(
+      "Enter a valid email",
+    );
+    expect(runtime.getFormState().errors).toEqual({
+      "user.email": "Enter a valid email",
+    });
+
+    // Second input is valid -> dotted error should clear.
+    email.value = "user@example.com";
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+
+    expect(
+      form.querySelectorAll('div[data-native-form-error="true"]').length,
+    ).toBe(0);
+    expect(runtime.getFormState().errors).toEqual({});
+  });
+
+  it("emits stable event order across invalid then valid dotted input recovery", async () => {
+    const form = createForm(`
+      <input name="user.email" value="" />
+      <input name="user.password" value="secret123" />
+    `);
+    const email = form.elements.namedItem("user.email") as HTMLInputElement;
+    const validator: Validator = {
+      validate: (values) => {
+        const emailValue = String(values["user.email"] ?? "");
+
+        if (!emailValue.includes("@")) {
+          return {
+            success: false,
+            issues: [{ name: "user.email", message: "Enter a valid email" }],
+          };
+        }
+
+        return {
+          success: true,
+          values,
+        };
+      },
+    };
+    const runtime = new Runtime({ validator });
+    const events: string[] = [];
+
+    runtime.subscribe((event) => {
+      events.push(event.type);
+    });
+    runtime.mount(form);
+
+    email.value = "invalid";
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+
+    email.value = "user@example.com";
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+
+    expect(events).toEqual([
+      "field:mount",
+      "field:mount",
+      "form:mount",
+      "validation:start",
+      "field:input",
+      "field:update",
+      "validation:end",
+      "validation:start",
+      "field:input",
+      "field:update",
+      "validation:end",
+    ]);
+  });
+
+  it("emits stable event order across invalid then valid dotted change recovery", async () => {
+    const form = createForm(`
+      <input name="user.email" value="" />
+      <input name="user.password" value="secret123" />
+    `);
+    const email = form.elements.namedItem("user.email") as HTMLInputElement;
+    const validator: Validator = {
+      validate: (values) => {
+        const emailValue = String(values["user.email"] ?? "");
+
+        if (!emailValue.includes("@")) {
+          return {
+            success: false,
+            issues: [{ name: "user.email", message: "Enter a valid email" }],
+          };
+        }
+
+        return {
+          success: true,
+          values,
+        };
+      },
+    };
+    const runtime = new Runtime({ validator });
+    const events: string[] = [];
+
+    runtime.subscribe((event) => {
+      events.push(event.type);
+    });
+    runtime.mount(form);
+
+    email.value = "invalid";
+    email.dispatchEvent(new Event("change", { bubbles: true }));
+    await Promise.resolve();
+
+    email.value = "user@example.com";
+    email.dispatchEvent(new Event("change", { bubbles: true }));
+    await Promise.resolve();
+
+    expect(events).toEqual([
+      "field:mount",
+      "field:mount",
+      "form:mount",
+      "validation:start",
+      "field:change",
+      "field:update",
+      "validation:end",
+      "validation:start",
+      "field:change",
+      "field:update",
+      "validation:end",
+    ]);
+  });
+
   it("does not duplicate the same error message after repeated validation", async () => {
     const form = createForm('<input name="email" value="" />');
     const input = form.elements.namedItem("email") as HTMLInputElement;

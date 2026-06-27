@@ -7,7 +7,7 @@ import {
   ValidationResult,
   Validator,
 } from "./Validation";
-import { NativeFormValues } from "./types";
+import { NativeFormFlatValues, NativeFormValues } from "./types";
 
 export interface ValidationPipelineContext extends ValidationContext {
   fields: FieldNode[];
@@ -50,7 +50,7 @@ export interface ValidationPipeline<
    * Used for full-form validation flows (for example, submit).
    */
   validate(
-    values: NativeFormValues,
+    values: NativeFormFlatValues,
     context: ValidationPipelineContext,
   ): ValidationResult<TValues> | Promise<ValidationResult<TValues>>;
 
@@ -62,7 +62,7 @@ export interface ValidationPipeline<
    */
   validateField(
     field: FieldNode,
-    values: NativeFormValues,
+    values: NativeFormFlatValues,
     context: ValidationPipelineContext,
   ): ValidationResult<TValues> | Promise<ValidationResult<TValues>>;
 }

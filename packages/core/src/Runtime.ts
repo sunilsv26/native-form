@@ -7,6 +7,7 @@ import {
   ValidationPipeline,
 } from "./ValidationPipeline";
 import {
+  NativeFormFlatValues,
   NativeFormElement,
   NativeFormValue,
   NativeFormValues,
@@ -222,7 +223,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
   }
 
   private async runValidation(
-    values: NativeFormValues,
+    values: NativeFormFlatValues,
   ): Promise<ValidationResult<TValues>> {
     if (!this.form) {
       throw new Error("Runtime is not mounted.");
@@ -330,7 +331,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
 
   private async runFieldValidation(
     field: FieldNode,
-    values: NativeFormValues,
+    values: NativeFormFlatValues,
   ): Promise<ValidationResult<TValues>> {
     if (!this.form) {
       throw new Error("Runtime is not mounted.");
@@ -415,7 +416,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
       validating: this.validating,
       errors: { ...this.errors },
       fields,
-      values: this.form ? this.serialize() : ({} as NativeFormValues),
+      values: this.form ? this.serialize() : ({} as NativeFormFlatValues),
     };
   }
 
@@ -494,7 +495,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
 
   private applyValidationResult(
     result: ValidationResult<TValues>,
-    values: NativeFormValues,
+    values: NativeFormFlatValues,
   ): void {
     // Consolidate any duplicate/legacy inline error labels before applying
     // the validation result so we don't accumulate duplicates during

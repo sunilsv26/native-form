@@ -1,10 +1,10 @@
-import { NativeFormValues } from "./types";
+import { NativeFormFlatValues } from "./types";
 
 export class Serializer {
-  serialize(form: HTMLFormElement): NativeFormValues {
+  serialize(form: HTMLFormElement): NativeFormFlatValues {
     const formData = new FormData(form);
 
-    const values: NativeFormValues = {};
+    const values: NativeFormFlatValues = {};
 
     for (const key of new Set(formData.keys())) {
       const entries = formData.getAll(key);

@@ -1,4 +1,4 @@
-import { NativeFormValues } from "./types";
+import { NativeFormFlatValues, NativeFormValues } from "./types";
 
 export interface ValidationIssue {
   name: string;
@@ -10,7 +10,9 @@ export interface ValidationContext {
   signal: AbortSignal;
 }
 
-export type ValidationResult<TValues extends NativeFormValues = NativeFormValues> =
+export type ValidationResult<
+  TValues extends NativeFormValues = NativeFormValues,
+> =
   | {
       success: true;
       values: TValues;
@@ -22,9 +24,11 @@ export type ValidationResult<TValues extends NativeFormValues = NativeFormValues
       issues: ValidationIssue[];
     };
 
-export interface Validator<TValues extends NativeFormValues = NativeFormValues> {
+export interface Validator<
+  TValues extends NativeFormValues = NativeFormValues,
+> {
   validate(
-    values: NativeFormValues,
+    values: NativeFormFlatValues,
     context: ValidationContext,
   ): ValidationResult<TValues> | Promise<ValidationResult<TValues>>;
 }
@@ -44,7 +48,9 @@ export type StandardSchemaResult<TValues> =
       issues: readonly StandardSchemaIssue[];
     };
 
-export interface StandardSchemaV1<TValues extends NativeFormValues = NativeFormValues> {
+export interface StandardSchemaV1<
+  TValues extends NativeFormValues = NativeFormValues,
+> {
   "~standard": {
     version: 1;
     vendor: string;

@@ -1,6 +1,10 @@
 import { useMemo } from "react";
 
-import { FieldState, NativeFormValues } from "@native-form/core";
+import {
+  FieldState,
+  NativeFormValue,
+  NativeFormValues,
+} from "@native-form/core";
 
 import { UseFormResult } from "./useForm";
 
@@ -20,16 +24,33 @@ function createUntrackedFieldState(
   values: NativeFormValues,
   errors: Record<string, string>,
 ): UseFieldResult {
+  const value = toFieldValue(values[name]);
+
   return {
     name,
     mounted: false,
     dirty: false,
     touched: false,
     initialValue: undefined,
-    value: values[name],
+    value,
     error: errors[name],
     invalid: Boolean(errors[name]),
   };
+}
+
+function toFieldValue(value: unknown): NativeFormValue | undefined {
+  if (typeof value === "string" || value instanceof File) {
+    return value;
+  }
+
+  if (
+    Array.isArray(value) &&
+    value.every((entry) => typeof entry === "string" || entry instanceof File)
+  ) {
+    return value;
+  }
+
+  return undefined;
 }
 
 export function useField<TValues extends NativeFormValues = NativeFormValues>({

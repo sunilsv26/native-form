@@ -5,7 +5,14 @@ export type NativeFormElement =
 
 export type NativeFormValue = FormDataEntryValue | FormDataEntryValue[];
 
-export type NativeFormValues = Record<string, NativeFormValue>;
+export type NativeFormFlatValues = Record<string, NativeFormValue>;
+
+export type NativeFormNestedValue =
+  | NativeFormValue
+  | { [key: string]: NativeFormNestedValue }
+  | NativeFormNestedValue[];
+
+export type NativeFormValues = Record<string, NativeFormNestedValue>;
 
 export type RuntimeEventType =
   | "form:mount"

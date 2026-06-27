@@ -7,7 +7,7 @@ import { z } from "zod";
 
 export function zodResolver<TSchema extends z.ZodTypeAny>(
   schema: TSchema,
-): Validator {
+): Validator<z.output<TSchema> & NativeFormValues> {
   return {
     async validate(values, context) {
       const result = await schema.safeParseAsync(toNestedValues(values));
@@ -24,7 +24,7 @@ export function zodResolver<TSchema extends z.ZodTypeAny>(
 
       return {
         success: true,
-        values: result.data as unknown as NativeFormValues,
+        values: result.data as z.output<TSchema> & NativeFormValues,
       };
     },
   };

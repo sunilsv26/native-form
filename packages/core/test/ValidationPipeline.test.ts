@@ -176,4 +176,39 @@ describe("ValidationPipeline", () => {
       values: { email: "schema@example.com" },
     });
   });
+
+  it("validateField delegates full snapshot to validator-based pipeline", async () => {
+    const validator: Validator<{
+      email: FormDataEntryValue;
+      password: FormDataEntryValue;
+    }> = {
+      validate: vi.fn((values) => ({
+        success: false,
+        issues: [{ name: "email", message: `bad:${values.email}` }],
+      })),
+    };
+    const pipeline = createValidationPipeline({ validator });
+    const form = document.createElement("form");
+    const input = document.createElement("input");
+    input.name = "email";
+    const field = new FieldNode(input);
+    const controller = new AbortController();
+
+    const values = { email: "x@example.com", password: "secret" };
+    const result = await pipeline.validateField(field, values, {
+      form,
+      signal: controller.signal,
+      fields: [field],
+    });
+
+    expect(validator.validate).toHaveBeenCalledOnce();
+    expect(validator.validate).toHaveBeenCalledWith(
+      values,
+      expect.objectContaining({ form, signal: controller.signal }),
+    );
+    expect(result).toEqual({
+      success: false,
+      issues: [{ name: "email", message: "bad:x@example.com" }],
+    });
+  });
 });

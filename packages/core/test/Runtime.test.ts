@@ -253,6 +253,10 @@ describe("Runtime", () => {
         success: false,
         issues: [{ name: "email", message: "pipeline says no" }],
       })),
+      validateField: vi.fn(() => ({
+        success: true,
+        values: { email: "a@example.com" },
+      })),
     };
     const runtime = new Runtime({ validator, pipeline });
 
@@ -265,6 +269,114 @@ describe("Runtime", () => {
     });
     expect(pipeline.validate).toHaveBeenCalledOnce();
     expect(validator.validate).not.toHaveBeenCalled();
+  });
+
+  it("uses pipeline.validateField on input and applies only active field issues", async () => {
+    const form = createForm(`
+      <input name="email" value="" />
+      <input name="password" value="" />
+    `);
+    const email = form.elements.namedItem("email") as HTMLInputElement;
+    const runtime = new Runtime({
+      pipeline: {
+        validate: vi.fn(() => ({
+          success: true,
+          values: { email: "", password: "" },
+        })),
+        validateField: vi.fn((field) => {
+          if (field.name === "email") {
+            return {
+              success: false,
+              issues: [{ name: "email", message: "Email is required" }],
+            };
+          }
+
+          return {
+            success: true,
+            values: { email: "", password: "" },
+          };
+        }),
+      },
+    });
+
+    runtime.mount(form);
+
+    email.value = "";
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+
+    expect(runtime.getFormState().errors).toEqual({
+      email: "Email is required",
+    });
+    expect(runtime.getFieldState("password")?.error).toBeUndefined();
+  });
+
+  it("uses pipeline.validateField on change and applies only active field issues", async () => {
+    const form = createForm(`
+      <input name="email" value="" />
+      <input name="password" value="" />
+    `);
+    const password = form.elements.namedItem("password") as HTMLInputElement;
+    const pipeline = {
+      validate: vi.fn(() => ({
+        success: true,
+        values: { email: "", password: "" },
+      })),
+      validateField: vi.fn((field) => {
+        if (field.name === "password") {
+          return {
+            success: false,
+            issues: [{ name: "password", message: "Password is required" }],
+          };
+        }
+
+        return {
+          success: true,
+          values: { email: "", password: "" },
+        };
+      }),
+    };
+    const runtime = new Runtime({ pipeline });
+
+    runtime.mount(form);
+
+    password.value = "";
+    password.dispatchEvent(new Event("change", { bubbles: true }));
+    await Promise.resolve();
+
+    expect(pipeline.validateField).toHaveBeenCalled();
+    expect(runtime.getFormState().errors).toEqual({
+      password: "Password is required",
+    });
+    expect(runtime.getFieldState("email")?.error).toBeUndefined();
+  });
+
+  it("uses pipeline.validate on submit and not validateField", async () => {
+    const form = createForm(`
+      <input name="email" value="a@example.com" />
+      <input name="password" value="secret" />
+    `);
+    const pipeline = {
+      validate: vi.fn(() => ({
+        success: false,
+        issues: [{ name: "email", message: "Submit validation failed" }],
+      })),
+      validateField: vi.fn(() => ({
+        success: true,
+        values: { email: "a@example.com", password: "secret" },
+      })),
+    };
+    const runtime = new Runtime({ pipeline });
+
+    runtime.mount(form);
+    const result = await runtime.submit();
+
+    expect(result).toEqual({
+      success: false,
+      issues: [{ name: "email", message: "Submit validation failed" }],
+    });
+    expect(pipeline.validate).toHaveBeenCalledOnce();
+    expect(pipeline.validateField).not.toHaveBeenCalled();
   });
 });
 

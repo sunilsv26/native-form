@@ -23,6 +23,10 @@ import type {
   RuntimeListener as RuntimeListenerLayered,
 } from "../src/shared/types";
 import type {
+  Runtime as RuntimeFlat,
+  RuntimeFormState as RuntimeFormStateFlat,
+  RuntimeOptions as RuntimeOptionsFlat,
+  RuntimePublicApi as RuntimePublicApiFlat,
   InferSchemaOutput as InferSchemaOutputFlat,
   SchemaLike as SchemaLikeFlat,
   StandardSchemaIssue as StandardSchemaIssueFlat,
@@ -34,6 +38,10 @@ import type {
   Validator as ValidatorFlat,
 } from "../src/Validation";
 import type {
+  Runtime as RuntimeLayered,
+  RuntimeFormState as RuntimeFormStateLayered,
+  RuntimeOptions as RuntimeOptionsLayered,
+  RuntimePublicApi as RuntimePublicApiLayered,
   InferSchemaOutput as InferSchemaOutputLayered,
   SchemaLike as SchemaLikeLayered,
   StandardSchemaIssue as StandardSchemaIssueLayered,
@@ -94,6 +102,16 @@ type RuntimeListenerParity = IsEqual<
   RuntimeListenerFlat,
   RuntimeListenerLayered
 >;
+type RuntimeOptionsParity = IsEqual<RuntimeOptionsFlat, RuntimeOptionsLayered>;
+type RuntimeFormStateParity = IsEqual<
+  RuntimeFormStateFlat,
+  RuntimeFormStateLayered
+>;
+type RuntimePublicApiParity = IsEqual<
+  RuntimePublicApiFlat,
+  RuntimePublicApiLayered
+>;
+type RuntimeClassParity = IsEqual<RuntimeFlat, RuntimeLayered>;
 
 type ValidationIssueParity = IsEqual<
   ValidationIssueFlat,
@@ -159,6 +177,10 @@ const nativeFormValuesParity: NativeFormValuesParity = true;
 const runtimeEventTypeParity: RuntimeEventTypeParity = true;
 const runtimeEventParity: RuntimeEventParity = true;
 const runtimeListenerParity: RuntimeListenerParity = true;
+const runtimeOptionsParity: RuntimeOptionsParity = true;
+const runtimeFormStateParity: RuntimeFormStateParity = true;
+const runtimePublicApiParity: RuntimePublicApiParity = true;
+const runtimeClassParity: RuntimeClassParity = true;
 
 const validationIssueParity: ValidationIssueParity = true;
 const validationContextParity: ValidationContextParity = true;
@@ -187,6 +209,10 @@ describe("Legacy shim type parity contract", () => {
     expect(runtimeEventTypeParity).toBe(true);
     expect(runtimeEventParity).toBe(true);
     expect(runtimeListenerParity).toBe(true);
+    expect(runtimeOptionsParity).toBe(true);
+    expect(runtimeFormStateParity).toBe(true);
+    expect(runtimePublicApiParity).toBe(true);
+    expect(runtimeClassParity).toBe(true);
 
     expect(validationIssueParity).toBe(true);
     expect(validationContextParity).toBe(true);

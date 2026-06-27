@@ -388,6 +388,12 @@ Contract rules:
   2. `schema` option
   3. `validator` option
   4. Native browser validity fallback
+- Pipeline entrypoints:
+  - `validate(values, context)` is used for full-form validation (e.g. submit).
+  - `validateField(field, values, context)` is used for field-triggered validation (e.g. input/change).
+- Default pipeline behavior:
+  - Native mode validates only the active field in `validateField`.
+  - Schema/validator mode currently validates the full snapshot even from `validateField`.
 - Without schema/validator/pipeline, default pipeline uses native browser validity.
 
 ---

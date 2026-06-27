@@ -36,6 +36,38 @@ describe("ValidationPipeline", () => {
     });
   });
 
+  it("uses native field-only validation in validateField", async () => {
+    const form = document.createElement("form");
+    const email = document.createElement("input");
+    email.name = "email";
+    email.setCustomValidity("Email is required");
+    const password = document.createElement("input");
+    password.name = "password";
+    password.setCustomValidity("Password is required");
+
+    form.append(email, password);
+
+    const emailField = new FieldNode(email);
+    const passwordField = new FieldNode(password);
+    const pipeline = createValidationPipeline();
+    const controller = new AbortController();
+
+    const result = await pipeline.validateField(
+      emailField,
+      { email: "", password: "" },
+      {
+        form,
+        signal: controller.signal,
+        fields: [emailField, passwordField],
+      },
+    );
+
+    expect(result).toEqual({
+      success: false,
+      issues: [{ name: "email", message: "Email is required" }],
+    });
+  });
+
   it("adapts standard schema validation results", async () => {
     const schema: StandardSchemaV1<{ email: FormDataEntryValue }> = {
       "~standard": {

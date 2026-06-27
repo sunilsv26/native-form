@@ -20,6 +20,12 @@ export interface ValidationPipeline<
     values: NativeFormValues,
     context: ValidationPipelineContext,
   ): ValidationResult<TValues> | Promise<ValidationResult<TValues>>;
+
+  validateField(
+    field: FieldNode,
+    values: NativeFormValues,
+    context: ValidationPipelineContext,
+  ): ValidationResult<TValues> | Promise<ValidationResult<TValues>>;
 }
 
 export interface ValidationPipelineOptions<
@@ -58,6 +64,44 @@ export function createValidationPipeline<
 
       return validator.validate(values, context);
     },
+
+    async validateField(field, values, context) {
+      // No custom validator: rely on native validity for the active field only.
+      if (!validator) {
+        const issue = getNativeValidationIssue(field);
+
+        if (issue) {
+          return {
+            success: false,
+            issues: [issue],
+          };
+        }
+
+        return {
+          success: true,
+          values: values as TValues,
+        };
+      }
+
+      // For schema/validator-based validation we currently validate the
+      // full snapshot and let adapter/schema decide issue granularity.
+      return validator.validate(values, context);
+    },
+  };
+}
+
+function getNativeValidationIssue(
+  field: FieldNode,
+): ValidationIssue | undefined {
+  const validationMessage = field.element.validationMessage;
+
+  if (!validationMessage) {
+    return undefined;
+  }
+
+  return {
+    name: field.name,
+    message: validationMessage,
   };
 }
 

@@ -276,7 +276,11 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
       node?.updateValue(value);
     }
 
-    void this.runValidation(values).then(() => {
+    if (!node) {
+      return;
+    }
+
+    void this.runFieldValidation(node, values).then(() => {
       this.options.onInvalid?.(this.errors, values);
     });
 
@@ -323,6 +327,43 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
       values,
     });
   };
+
+  private async runFieldValidation(
+    field: FieldNode,
+    values: NativeFormValues,
+  ): Promise<ValidationResult<TValues>> {
+    if (!this.form) {
+      throw new Error("Runtime is not mounted.");
+    }
+
+    this.validationController?.abort();
+    this.validationController = new AbortController();
+    this.validating = true;
+
+    this.notify({
+      type: "validation:start",
+      values,
+    });
+
+    this.errors = {};
+    for (const f of this.registry.values()) {
+      f.setError(this.errors[f.name]);
+    }
+    this.applyNativeErrors();
+
+    const result = await this.pipeline.validateField(field, values, {
+      form: this.form,
+      signal: this.validationController.signal,
+      fields: this.registry.values(),
+    });
+
+    if (!this.validationController.signal.aborted) {
+      this.applyValidationResult(result, values);
+      this.validating = false;
+    }
+
+    return result;
+  }
 
   private handleReset = () => {
     queueMicrotask(() => {

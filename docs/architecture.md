@@ -368,6 +368,7 @@ field:unmount
 
 Specific events (`field:input`, `field:change`) describe source actions.
 `field:update` is the generic value-change signal and may follow specific input/change events.
+The same ordering guarantees apply to dotted/nested field names (for example `user.email`).
 
 ## Validation Pipeline Contract
 
@@ -543,6 +544,13 @@ Native Form is not tied to React.
 
 - Nested objects
 - Arrays
+
+Current progress:
+
+- ✅ Dotted field-path normalization in Zod adapter (`user.email`, `users.0.email`) for nested schema validation input.
+- ✅ Core typing split between flat serialized field snapshots and nested validated values.
+- ✅ Runtime nested-field lifecycle parity tests for `input`/`change` error recovery and event-order contracts.
+- ⏳ Remaining: full array ergonomics and authoring helpers beyond dotted-path naming.
 
 ---
 

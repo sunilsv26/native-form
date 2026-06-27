@@ -396,6 +396,11 @@ Contract rules:
   - Schema/validator mode currently validates the full snapshot even from `validateField`.
 - Without schema/validator/pipeline, default pipeline uses native browser validity.
 
+Future direction:
+
+- Add optional true field-scoped schema validation where supported by adapters.
+- Keep full-snapshot validation as the compatibility baseline.
+
 ---
 
 # Package Layout

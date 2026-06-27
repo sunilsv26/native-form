@@ -6,6 +6,7 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "test": "turbo test",
+    "verify": "turbo test && turbo build",
     "lint": "turbo lint",
     "clean": "turbo clean"
   },

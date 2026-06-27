@@ -2,6 +2,12 @@
 
 This document captures contributor expectations for changes in core architecture.
 
+## Automation
+
+- CI runs on pull requests and pushes via `.github/workflows/ci.yml`.
+- Pull request checklist is defined in `.github/pull_request_template.md`.
+- Local pre-merge gate: `pnpm verify`.
+
 ## Core Architecture PR Checklist
 
 Use this checklist for any PR that changes behavior in `packages/core`.
@@ -50,6 +56,7 @@ Runtime API boundary changes must include/update:
 
 - runtime method-level contract checks in `packages/core/test/RuntimeApiContract.test.ts`
 - runtime public key freeze checks in `packages/core/test/RuntimePublicSurface.test.ts`
+- core barrel export freeze checks in `packages/core/test/PublicExportsContract.test.ts`
 
 ## Runtime Contract Notes
 

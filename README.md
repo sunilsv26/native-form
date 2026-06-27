@@ -8,6 +8,7 @@ Native HTML-first form runtime and adapters.
 - Contributing guide: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
 - Design specification: [docs/DESIGN.md](docs/DESIGN.md)
 - Lifecycle contract: [docs/LIFECYCLE.md](docs/LIFECYCLE.md)
+- Release checklist: [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)
 - Runtime module: [docs/RUNTIME.md](docs/RUNTIME.md)
 - FieldNode module: [docs/FIELDNODE.md](docs/FIELDNODE.md)
 - Validation module: [docs/VALIDATION.md](docs/VALIDATION.md)
@@ -23,6 +24,7 @@ Native HTML-first form runtime and adapters.
 ```bash
 pnpm test
 pnpm build
+pnpm verify
 ```
 
 ## Quick Start (Example)

@@ -14,7 +14,6 @@ export class FieldRegistry {
     const field = this.fields.get(name);
 
     if (field) {
-      field.removeErrorElement();
       field.unregister();
       this.onChange?.({ type: "unmount", field });
     }
@@ -36,7 +35,6 @@ export class FieldRegistry {
 
   clear(): void {
     for (const field of this.fields.values()) {
-      field.removeErrorElement();
       field.unregister();
       this.onChange?.({ type: "unmount", field });
     }

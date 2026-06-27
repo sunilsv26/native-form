@@ -47,10 +47,9 @@ describe("FieldNode", () => {
     expect(state.dirty).toBe(true);
   });
 
-  it("setError updates validity, inline label, and emits onChange", () => {
+  it("setError updates state and emits onChange", () => {
     const input = document.createElement("input");
     input.name = "email";
-    document.body.append(input);
 
     const node = new FieldNode(input);
     const cb = vi.fn();
@@ -59,15 +58,9 @@ describe("FieldNode", () => {
     node.register(undefined);
     node.setError("Invalid email");
 
-    expect(input.validationMessage).toBe("Invalid email");
-    const errorEl = input.nextElementSibling as HTMLElement;
-    expect(errorEl?.dataset.nativeFormError).toBe("true");
-    expect(errorEl?.textContent).toBe("Invalid email");
-
     const state = node.getState();
     expect(state.error).toBe("Invalid email");
-
-    input.remove();
+    expect(cb).toHaveBeenCalled();
   });
 
   it("reset restores initial value and emits onChange", () => {

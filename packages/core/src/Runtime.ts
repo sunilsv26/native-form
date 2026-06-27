@@ -1,4 +1,5 @@
 import { Discovery } from "./Discovery";
+import { FieldErrorRenderer } from "./FieldErrorRenderer";
 import { FieldNode } from "./FieldNode";
 import { FieldRegistry } from "./FieldRegistry";
 import { Serializer } from "./Serializer";
@@ -42,6 +43,8 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
 
   private readonly serializer = new Serializer();
 
+  private readonly fieldErrorRenderer = new FieldErrorRenderer();
+
   private form?: HTMLFormElement;
 
   private readonly listeners = new Set<RuntimeListener>();
@@ -81,7 +84,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
   mount(form: HTMLFormElement) {
     this.form = form;
     this.syncFields();
-    normalizeErrorLabelsForRegistry(this.registry);
+    this.fieldErrorRenderer.normalizeFields(this.registry.values());
 
     const values = this.serialize();
 
@@ -119,6 +122,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     this.observer = undefined;
     this.validationController?.abort();
     this.validationController = undefined;
+    this.fieldErrorRenderer.applyErrors(this.registry.values(), {});
     this.registry.clear();
 
     this.form = undefined;
@@ -460,6 +464,11 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
         continue;
       }
 
+      const removed = this.registry.get(name);
+      if (removed) {
+        this.fieldErrorRenderer.applyErrors([removed], {});
+      }
+
       // registry.unregister already handles node cleanup
       this.registry.unregister(name);
     }
@@ -497,10 +506,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     result: ValidationResult<TValues>,
     values: NativeFormFlatValues,
   ): void {
-    // Consolidate any duplicate/legacy inline error labels before applying
-    // the validation result so we don't accumulate duplicates during
-    // repeated validation runs.
-    normalizeErrorLabelsForRegistry(this.registry);
+    this.fieldErrorRenderer.normalizeFields(this.registry.values());
 
     this.errors = result.success ? {} : issuesToErrors(result.issues);
     for (const field of this.registry.values()) {
@@ -522,10 +528,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
       observer.disconnect();
     }
 
-    for (const field of this.registry.values()) {
-      field.element.setCustomValidity(this.errors[field.name] ?? "");
-      field.updateError(this.errors[field.name]);
-    }
+    this.fieldErrorRenderer.applyErrors(this.registry.values(), this.errors);
 
     if (observer && this.form) {
       observer.observe(this.form, {
@@ -560,45 +563,6 @@ function issuesToErrors(issues: ValidationIssue[]): Record<string, string> {
   }
 
   return errors;
-}
-
-// Consolidate legacy or duplicate inline error labels placed next to controls.
-function normalizeErrorLabelsForRegistry(registry: FieldRegistry) {
-  for (const field of registry.values()) {
-    let node = field.element.nextElementSibling;
-    const candidates: HTMLElement[] = [];
-
-    while (node) {
-      if (node instanceof HTMLElement) {
-        const id = node.id ?? "";
-        const aria = node.getAttribute("aria-live");
-
-        const isRuntimeLabel =
-          node.dataset.nativeFormError === "true" ||
-          id.startsWith("native-form-error-") ||
-          aria === "polite";
-
-        if (isRuntimeLabel) {
-          candidates.push(node);
-          node = node.nextElementSibling;
-          continue;
-        }
-      }
-
-      break;
-    }
-
-    if (candidates.length === 0) continue;
-
-    // Keep the first, remove the rest, and mark the kept node.
-    const keep = candidates[0];
-    for (let i = 1; i < candidates.length; i++) {
-      candidates[i].remove();
-    }
-
-    keep.dataset.nativeFormError = "true";
-    keep.setAttribute("data-for", field.name);
-  }
 }
 
 function isNativeFormControl(node: Node): boolean {

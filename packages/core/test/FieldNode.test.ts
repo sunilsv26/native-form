@@ -50,6 +50,7 @@ describe("FieldNode", () => {
   it("setError updates validity, inline label, and emits onChange", () => {
     const input = document.createElement("input");
     input.name = "email";
+    document.body.append(input);
 
     const node = new FieldNode(input);
     const cb = vi.fn();
@@ -65,6 +66,8 @@ describe("FieldNode", () => {
 
     const state = node.getState();
     expect(state.error).toBe("Invalid email");
+
+    input.remove();
   });
 
   it("reset restores initial value and emits onChange", () => {

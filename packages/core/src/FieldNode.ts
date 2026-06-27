@@ -79,11 +79,6 @@ export class FieldNode {
     this.element.blur();
   }
 
-  private findExistingErrorElement(): HTMLElement | undefined {
-    const elems = this.findExistingErrorElements();
-    return elems.length > 0 ? elems[0] : undefined;
-  }
-
   // Collect contiguous sibling elements immediately after the control that
   // are marked as runtime error labels. This also catches legacy labels
   // that were created without the `data-for` attribute.
@@ -212,6 +207,7 @@ export class FieldNode {
       this.dirty = false;
       this.touched = false;
       this.error = undefined;
+      this.onChange?.(this.getState());
       return;
     }
 
@@ -275,13 +271,13 @@ export class FieldNode {
   }
   // --- Lifecycle helpers ---
   // Called when the browser emits input on the control
-  handleInput() {
-    this.updateValue();
+  handleInput(value?: NativeFormValue) {
+    this.updateValue(value);
   }
 
   // Called when the browser emits change on the control
-  handleChange() {
-    this.updateValue();
+  handleChange(value?: NativeFormValue) {
+    this.updateValue(value);
   }
 
   // Called when the control is blurred

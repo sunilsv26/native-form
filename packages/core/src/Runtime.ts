@@ -1,7 +1,6 @@
 import { Discovery } from "./Discovery";
 import { FieldNode } from "./FieldNode";
 import { FieldRegistry } from "./FieldRegistry";
-import { FieldStateStore } from "./FieldStateStore";
 import { Serializer } from "./Serializer";
 import {
   NativeFormElement,
@@ -42,7 +41,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
 
   private readonly listeners = new Set<RuntimeListener>();
 
-  private readonly fieldStateStore = new FieldStateStore();
+  // Field state is now managed on each FieldNode instance.
 
   private observer?: MutationObserver;
 
@@ -70,7 +69,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     const values = this.serialize();
 
     for (const field of this.registry.getAll()) {
-      this.fieldStateStore.register(field.name, values[field.name]);
+      field.register(values[field.name]);
     }
 
     form.addEventListener("submit", this.handleSubmit);
@@ -115,7 +114,6 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     });
 
     this.listeners.clear();
-    this.fieldStateStore.clear();
   }
 
   serialize() {
@@ -215,7 +213,9 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     });
 
     this.errors = {};
-    this.fieldStateStore.setErrors(this.errors);
+    for (const field of this.registry.values()) {
+      field.setError(this.errors[field.name]);
+    }
     this.applyNativeErrors();
 
     const nativeIssues = this.validator ? [] : this.getNativeValidationIssues();
@@ -257,7 +257,8 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     const values = this.serialize();
     const value = values[element.name];
 
-    this.fieldStateStore.updateValue(element.name, value);
+    const node = this.registry.get(element.name);
+    node?.updateValue(value);
 
     void this.runValidation(values).then(() => {
       this.options.onInvalid?.(this.errors, values);
@@ -281,7 +282,8 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     const values = this.serialize();
     const value = values[element.name];
 
-    this.fieldStateStore.markTouched(element.name);
+    const node = this.registry.get(element.name);
+    node?.markTouched();
 
     this.notify({
       type: "field:blur",
@@ -297,7 +299,9 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
 
       const values = this.serialize();
 
-      this.fieldStateStore.reset(values);
+      for (const field of this.registry.values()) {
+        field.reset(values[field.name]);
+      }
       this.errors = {};
       this.applyNativeErrors();
 
@@ -309,11 +313,11 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
   };
 
   getFieldState(name: string) {
-    return this.fieldStateStore.get(name);
+    return this.registry.get(name)?.getState();
   }
 
   getFieldStates() {
-    return this.fieldStateStore.getAll();
+    return this.registry.values().map((f) => f.getState());
   }
 
   getFormState() {
@@ -337,10 +341,8 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     }
 
     this.registry.register(new FieldNode(element));
-    this.fieldStateStore.register(
-      element.name,
-      this.getFieldValue(element.name),
-    );
+    const node = this.registry.get(element.name)!;
+    node.register(this.getFieldValue(element.name));
   }
 
   private getFieldValue(name: string): NativeFormValue | undefined {
@@ -364,7 +366,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     const next = new Set(this.registry.values().map((field) => field.name));
 
     for (const field of this.registry.values()) {
-      this.fieldStateStore.register(field.name, values[field.name]);
+      field.register(values[field.name]);
 
       if (!previous.has(field.name)) {
         this.notify({
@@ -379,7 +381,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
         continue;
       }
 
-      this.fieldStateStore.unregister(name);
+      // registry.unregister already handles node cleanup
       this.registry.unregister(name);
       this.notify({
         type: "field:unmount",
@@ -426,7 +428,9 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     normalizeErrorLabelsForRegistry(this.registry);
 
     this.errors = result.success ? {} : issuesToErrors(result.issues);
-    this.fieldStateStore.setErrors(this.errors);
+    for (const field of this.registry.values()) {
+      field.setError(this.errors[field.name]);
+    }
     this.applyNativeErrors();
 
     this.notify({
@@ -465,7 +469,9 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
 
     this.errors = { ...this.errors };
     delete this.errors[name];
-    this.fieldStateStore.setErrors(this.errors);
+    for (const field of this.registry.values()) {
+      field.setError(this.errors[field.name]);
+    }
     this.applyNativeErrors();
     return true;
   }

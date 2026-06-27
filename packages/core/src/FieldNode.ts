@@ -1,4 +1,5 @@
-import { NativeFormElement } from "./types";
+import { NativeFormElement, NativeFormValue } from "./types";
+import { FieldState } from "./FieldState";
 
 export class FieldNode {
   private static nextErrorId = 0;
@@ -13,6 +14,9 @@ export class FieldNode {
   private touched = false;
 
   private mounted = true;
+  private initialValue: NativeFormValue | undefined = undefined;
+  private stateValue: NativeFormValue | undefined = undefined;
+  private error?: string;
 
   get name() {
     return this.element.name;
@@ -190,10 +194,6 @@ export class FieldNode {
     this.dirty = true;
   }
 
-  markTouched() {
-    this.touched = true;
-  }
-
   mount() {
     this.mounted = true;
   }
@@ -201,4 +201,79 @@ export class FieldNode {
   unmount() {
     this.mounted = false;
   }
+
+  // --- New state API (replaces FieldStateStore) ---
+  register(initialValue?: NativeFormValue) {
+    if (this.mounted) {
+      this.initialValue = initialValue;
+      this.stateValue = initialValue;
+      this.dirty = false;
+      this.touched = false;
+      this.error = undefined;
+      return;
+    }
+
+    this.mounted = true;
+    this.initialValue = initialValue;
+    this.stateValue = initialValue;
+    this.dirty = false;
+    this.touched = false;
+    this.error = undefined;
+  }
+
+  unregister() {
+    this.mounted = false;
+  }
+
+  getState(): FieldState {
+    return {
+      name: this.name,
+      dirty: this.dirty,
+      touched: this.touched,
+      mounted: this.mounted,
+      initialValue: this.initialValue,
+      value: this.stateValue,
+      error: this.error,
+    };
+  }
+
+  updateValue(value: NativeFormValue | undefined) {
+    this.stateValue = value;
+    this.dirty = !isEqualValue(this.initialValue, value);
+  }
+
+  markTouched() {
+    this.touched = true;
+  }
+
+  setError(message: string | undefined) {
+    this.error = message;
+  }
+
+  reset(value: NativeFormValue | undefined) {
+    this.initialValue = value;
+    this.stateValue = value;
+    this.dirty = false;
+    this.touched = false;
+    this.error = undefined;
+  }
+}
+
+function isEqualValue(
+  left: NativeFormValue | undefined,
+  right: NativeFormValue | undefined,
+): boolean {
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right)) {
+      return false;
+    }
+
+    if (left.length !== right.length) {
+      return false;
+    }
+
+    return left.every((value, index) => value === right[index]);
+  }
+
+  return left === right;
 }

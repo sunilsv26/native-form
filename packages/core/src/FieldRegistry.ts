@@ -12,6 +12,7 @@ export class FieldRegistry {
 
     if (field) {
       field.removeErrorElement();
+      field.unregister();
     }
 
     this.fields.delete(name);
@@ -32,6 +33,7 @@ export class FieldRegistry {
   clear(): void {
     for (const field of this.fields.values()) {
       field.removeErrorElement();
+      field.unregister();
     }
 
     this.fields.clear();

@@ -348,6 +348,44 @@ events
 plugin
 ```
 
+## Event-Order Contract
+
+For a single field interaction sequence, Runtime emits deterministic lifecycle events in this order:
+
+```text
+field:mount
+field:input
+field:update
+field:change
+field:update
+field:blur
+field:reset
+field:submit
+field:unmount
+```
+
+Specific events (`field:input`, `field:change`) describe source actions.
+`field:update` is the generic value-change signal and may follow specific input/change events.
+
+## Validation Pipeline Contract
+
+Runtime delegates validation to a pipeline contract rather than owning validation logic.
+
+```text
+Runtime
+  ↓
+ValidationPipeline.validate(values, { form, signal, fields })
+  ↓
+ValidationResult
+```
+
+Contract rules:
+
+- Runtime never performs schema-specific validation itself.
+- Pipeline receives abort signal and field context.
+- Without schema/validator, default pipeline uses native browser validity.
+- Custom/injected pipeline takes precedence over schema/validator options.
+
 ---
 
 # Package Layout

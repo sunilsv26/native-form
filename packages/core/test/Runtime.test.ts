@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Runtime } from "../src/Runtime";
 import { StandardSchemaV1, Validator } from "../src/Validation";
+import { ValidationPipeline } from "../src/ValidationPipeline";
 
 describe("Runtime", () => {
   it("discovers and serializes native form controls", () => {
@@ -237,6 +238,33 @@ describe("Runtime", () => {
       "field:submit",
       "field:unmount",
     ]);
+  });
+
+  it("uses injected pipeline over schema/validator", async () => {
+    const form = createForm('<input name="email" value="a@example.com" />');
+    const validator: Validator = {
+      validate: vi.fn(() => ({
+        success: true,
+        values: { email: "validator@example.com" },
+      })),
+    };
+    const pipeline: ValidationPipeline = {
+      validate: vi.fn(() => ({
+        success: false,
+        issues: [{ name: "email", message: "pipeline says no" }],
+      })),
+    };
+    const runtime = new Runtime({ validator, pipeline });
+
+    runtime.mount(form);
+    const result = await runtime.submit();
+
+    expect(result).toEqual({
+      success: false,
+      issues: [{ name: "email", message: "pipeline says no" }],
+    });
+    expect(pipeline.validate).toHaveBeenCalledOnce();
+    expect(validator.validate).not.toHaveBeenCalled();
   });
 });
 

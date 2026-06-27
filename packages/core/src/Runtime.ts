@@ -167,6 +167,15 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     }
 
     const values = this.serialize();
+    // lifecycle: mark fields as submitted/touched
+    for (const field of this.registry.values()) {
+      field.handleSubmit();
+      this.notify({
+        type: "field:submit",
+        field: field.name,
+      });
+    }
+
     const validation = await this.runValidation(values);
 
     if (!validation.success) {
@@ -258,6 +267,13 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     const value = values[element.name];
 
     const node = this.registry.get(element.name);
+    // lifecycle: input/change -> update value
+    if (event.type === "input") {
+      node?.handleInput();
+    } else if (event.type === "change") {
+      node?.handleChange();
+    }
+
     node?.updateValue(value);
 
     void this.runValidation(values).then(() => {
@@ -265,7 +281,12 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     });
 
     this.notify({
-      type: "field:update",
+      type:
+        event.type === "input"
+          ? "field:input"
+          : event.type === "change"
+            ? "field:change"
+            : "field:update",
       field: element.name,
       value,
       values,
@@ -283,7 +304,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     const value = values[element.name];
 
     const node = this.registry.get(element.name);
-    node?.markTouched();
+    node?.handleBlur();
 
     this.notify({
       type: "field:blur",
@@ -300,7 +321,13 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
       const values = this.serialize();
 
       for (const field of this.registry.values()) {
-        field.reset(values[field.name]);
+        field.handleReset(values[field.name]);
+        this.notify({
+          type: "field:reset",
+          field: field.name,
+          value: values[field.name],
+          values,
+        });
       }
       this.errors = {};
       this.applyNativeErrors();

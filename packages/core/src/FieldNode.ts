@@ -237,7 +237,7 @@ export class FieldNode {
     };
   }
 
-  updateValue(value: NativeFormValue | undefined) {
+  updateValue(value?: NativeFormValue) {
     const next = value === undefined ? (this.value as NativeFormValue) : value;
     this.stateValue = next;
     this.dirty = !isEqualValue(this.initialValue, next);
@@ -283,8 +283,9 @@ export class FieldNode {
   }
 
   // Called when the form is reset
-  handleReset() {
-    const initial = this.initialValue ?? (this.value as NativeFormValue);
+  handleReset(value?: NativeFormValue) {
+    const initial =
+      value ?? this.initialValue ?? (this.value as NativeFormValue);
     this.reset(initial);
     this.setError(undefined);
     try {
@@ -296,7 +297,7 @@ export class FieldNode {
   handleSubmit() {
     this.markTouched();
   }
-
+}
 
 function isEqualValue(
   left: NativeFormValue | undefined,

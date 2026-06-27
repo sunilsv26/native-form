@@ -18,7 +18,11 @@ export type RuntimeEventType =
   | "field:blur"
   | "field:mount"
   | "field:unmount"
-  | "field:update";
+  | "field:update"
+  | "field:input"
+  | "field:change"
+  | "field:reset"
+  | "field:submit";
 
 export type RuntimeEvent =
   | {
@@ -38,13 +42,18 @@ export type RuntimeEvent =
       values: NativeFormValues;
     }
   | {
-      type: "field:blur" | "field:update";
+      type:
+        | "field:blur"
+        | "field:update"
+        | "field:input"
+        | "field:change"
+        | "field:reset";
       field: string;
       value: NativeFormValue | undefined;
       values: NativeFormValues;
     }
   | {
-      type: "field:mount" | "field:unmount";
+      type: "field:mount" | "field:unmount" | "field:submit";
       field: string;
     };
 

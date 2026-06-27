@@ -4,8 +4,8 @@ Native HTML-first form runtime and adapters.
 
 ## Docs
 
-- Architecture: `docs/architecture.md`
-- Contributing guide: `docs/CONTRIBUTING.md`
+- Architecture: [docs/architecture.md](docs/architecture.md)
+- Contributing guide: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
 
 ## Packages
 
@@ -91,6 +91,19 @@ export function LoginForm() {
     </form>
   );
 }
+```
+
+Path helpers (nested and array field names):
+
+```tsx
+import { arrayItemPath, formPath } from "@native-form/core";
+
+const USER_EMAIL = formPath("user", "email");
+const TEAMMATE_0_EMAIL = arrayItemPath("teammates", 0, "email");
+
+// Use in markup or hooks:
+// <input name={USER_EMAIL} />
+// <input name={TEAMMATE_0_EMAIL} />
 ```
 
 On invalid submit/change, runtime-managed inline/native error messages are applied next to the affected field.

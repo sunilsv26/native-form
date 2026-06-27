@@ -32,8 +32,15 @@ Adapter or pipeline changes must include/update tests for:
 ## Runtime Contract Notes
 
 - `FieldNode` remains the single source of truth for per-field state.
-- Runtime event order is deterministic and documented in `docs/ARCHITECTURE.md`.
+- Runtime event order is deterministic and documented in [docs/architecture.md](architecture.md).
 - Runtime chooses `validateField` vs `validate` based on pipeline capabilities.
+
+## Field Path Authoring
+
+- Prefer `formPath(...)` and `arrayItemPath(...)` from `@native-form/core` when constructing field names in code.
+- Use plain string literals only when the path is static and local (for example a single inline input).
+- For indexed arrays, do not hand-concatenate path strings; use `arrayItemPath("users", index, "email")`.
+- Keep validation issue names aligned to the same dotted path format used by field names.
 
 ## Before Opening a PR
 
@@ -44,4 +51,4 @@ pnpm --filter @native-form/core test
 pnpm build
 ```
 
-If behavior changes, update `docs/ARCHITECTURE.md` alongside code and tests.
+If behavior changes, update [docs/architecture.md](architecture.md) alongside code and tests.

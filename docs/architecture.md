@@ -2,11 +2,11 @@
 
 > Native HTML first. Headless by default. Zero registration.
 
-Contributor workflow and checklists: see `docs/CONTRIBUTING.md`.
+Contributor workflow and checklists: see [docs/CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
-# Vision
+## Vision
 
 Modern React form libraries require developers to teach the library about every field.
 
@@ -41,7 +41,7 @@ No field wrappers.
 
 ---
 
-# Core Principles
+## Core Principles
 
 ## 1. Native HTML First
 
@@ -127,7 +127,7 @@ Forms should still submit correctly if JavaScript enhancements are removed.
 
 ---
 
-# Current Architecture
+## Current Architecture
 
 ```
 Browser
@@ -208,19 +208,15 @@ Responsibilities:
 - unmount
 - discover
 - serialize
-
-Future:
-
 - subscriptions
 - validation
-- dirty tracking
-- touched tracking
+- dirty/touched tracking
 
 ---
 
-# Public API
+## Public API
 
-Current
+Core form API
 
 ```tsx
 <Form onSubmit={(values) => {}}>
@@ -228,7 +224,7 @@ Current
 </Form>
 ```
 
-Future
+Hooks API (available)
 
 ```tsx
 const form = useForm();
@@ -242,7 +238,7 @@ The HTML API must always remain first-class.
 
 ---
 
-# Why Runtime Instead of React State?
+## Why Runtime Instead of React State?
 
 React state duplicates browser state.
 
@@ -276,7 +272,7 @@ One source of truth.
 
 ---
 
-# Event Flow (Next Milestone)
+## Event Flow
 
 ```
 User types
@@ -302,7 +298,7 @@ Subscribers
 React
 ```
 
-Everything builds on subscriptions.
+Everything builds on runtime subscriptions.
 
 Examples:
 
@@ -369,6 +365,7 @@ field:unmount
 Specific events (`field:input`, `field:change`) describe source actions.
 `field:update` is the generic value-change signal and may follow specific input/change events.
 The same ordering guarantees apply to dotted/nested field names (for example `user.email`).
+For path construction conventions, see Field Path Authoring in [docs/CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Validation Pipeline Contract
 
@@ -421,14 +418,14 @@ const pipeline = {
 };
 ```
 
-Future direction:
+Direction:
 
 - Add optional true field-scoped schema validation where supported by adapters.
 - Keep full-snapshot validation as the compatibility baseline.
 
 ---
 
-# Package Layout
+## Package Layout
 
 ```
 packages/
@@ -479,7 +476,7 @@ Contains only schema integration.
 
 ---
 
-# Stabilization Notes
+## Stabilization Notes
 
 Recent core stabilization changes introduced explicit contracts:
 
@@ -495,7 +492,7 @@ These contracts are covered by unit tests in `packages/core/test`.
 
 ---
 
-# Non Goals
+## Non Goals
 
 Native Form is not trying to replace HTML.
 
@@ -507,7 +504,7 @@ Native Form is not tied to React.
 
 ---
 
-# Roadmap
+## Roadmap
 
 ## Milestone 1 ✅
 
@@ -567,7 +564,7 @@ Current progress:
 
 ---
 
-# Engineering Principles
+## Engineering Principles
 
 - Browser APIs over custom abstractions.
 - Composition over configuration.
@@ -578,7 +575,7 @@ Current progress:
 
 ---
 
-# Success Criteria
+## Success Criteria
 
 A developer should be able to build a complete form using only standard HTML.
 

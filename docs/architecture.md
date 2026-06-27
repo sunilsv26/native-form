@@ -400,6 +400,24 @@ Contract rules:
   - Schema/validator mode currently validates the full snapshot even from `validateField`.
 - Without schema/validator/pipeline, default pipeline uses native browser validity.
 
+Example custom pipeline:
+
+```ts
+const pipeline = {
+  capabilities: {
+    supportsFieldScopedValidation: false,
+  },
+  async validate(values, context) {
+    // full-form validation path
+    return { success: true, values };
+  },
+  async validateField(field, values, context) {
+    // optional field-triggered path
+    return { success: true, values };
+  },
+};
+```
+
 Future direction:
 
 - Add optional true field-scoped schema validation where supported by adapters.

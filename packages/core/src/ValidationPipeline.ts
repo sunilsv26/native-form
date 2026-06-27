@@ -32,6 +32,19 @@ export interface ValidationPipeline<
   readonly capabilities?: ValidationPipelineCapabilities;
 
   /**
+   * @example
+   * const pipeline: ValidationPipeline = {
+   *   capabilities: { supportsFieldScopedValidation: false },
+   *   async validate(values) {
+   *     return { success: true, values };
+   *   },
+   *   async validateField(_field, values) {
+   *     return { success: true, values };
+   *   },
+   * };
+   */
+
+  /**
    * Validates the full serialized values snapshot.
    *
    * Used for full-form validation flows (for example, submit).

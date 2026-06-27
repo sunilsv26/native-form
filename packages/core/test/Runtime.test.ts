@@ -944,6 +944,110 @@ describe("Runtime", () => {
       email: "Field validation",
     });
   });
+
+  it("emits invalid submit event order without form:submit", async () => {
+    const form = createForm('<input name="email" value="" />');
+    const validator: Validator = {
+      validate: () => ({
+        success: false,
+        issues: [{ name: "email", message: "Email is required" }],
+      }),
+    };
+    const runtime = new Runtime({ validator });
+    const events: string[] = [];
+
+    runtime.subscribe((event) => {
+      events.push(event.type);
+    });
+    runtime.mount(form);
+
+    const result = await runtime.submit();
+
+    expect(result).toEqual({
+      success: false,
+      issues: [{ name: "email", message: "Email is required" }],
+    });
+    expect(events).toEqual([
+      "field:mount",
+      "form:mount",
+      "field:submit",
+      "validation:start",
+      "validation:end",
+      "form:invalid",
+    ]);
+    expect(events).not.toContain("form:submit");
+  });
+
+  it("keeps submitting=true only while onSubmit is in flight", async () => {
+    const form = createForm('<input name="email" value="a@example.com" />');
+    let resolveSubmit: (() => void) | undefined;
+    let markStarted: (() => void) | undefined;
+    const submitStarted = new Promise<void>((resolve) => {
+      markStarted = resolve;
+    });
+    const submitGate = new Promise<void>((resolve) => {
+      resolveSubmit = resolve;
+    });
+    const onSubmit = vi.fn(async () => {
+      markStarted?.();
+      await submitGate;
+    });
+    const validator: Validator<{ email: FormDataEntryValue }> = {
+      validate: (values) => ({
+        success: true,
+        values: { email: values.email as FormDataEntryValue },
+      }),
+    };
+    const runtime = new Runtime({ validator, onSubmit });
+
+    runtime.mount(form);
+
+    const submitPromise = runtime.submit();
+    await submitStarted;
+
+    expect(runtime.getFormState().submitting).toBe(true);
+
+    resolveSubmit?.();
+    await submitPromise;
+
+    expect(runtime.getFormState().submitting).toBe(false);
+  });
+
+  it("keeps validating=true only while validate is in flight", async () => {
+    const form = createForm('<input name="email" value="a@example.com" />');
+    let resolveValidate: (() => void) | undefined;
+    let markStarted: (() => void) | undefined;
+    const validationStarted = new Promise<void>((resolve) => {
+      markStarted = resolve;
+    });
+    const validationGate = new Promise<void>((resolve) => {
+      resolveValidate = resolve;
+    });
+    const validator: Validator<{ email: FormDataEntryValue }> = {
+      validate: vi.fn(async (values) => {
+        markStarted?.();
+        await validationGate;
+
+        return {
+          success: true,
+          values: { email: values.email as FormDataEntryValue },
+        };
+      }),
+    };
+    const runtime = new Runtime({ validator });
+
+    runtime.mount(form);
+
+    const validatePromise = runtime.validate();
+    await validationStarted;
+
+    expect(runtime.getFormState().validating).toBe(true);
+
+    resolveValidate?.();
+    await validatePromise;
+
+    expect(runtime.getFormState().validating).toBe(false);
+  });
 });
 
 function createForm(markup: string): HTMLFormElement {

@@ -518,14 +518,14 @@ Native Form is not tied to React.
 
 ---
 
-## Milestone 2
+## Milestone 2 ✅
 
 - Event Emitter
 - Runtime subscriptions
 
 ---
 
-## Milestone 3
+## Milestone 3 (In progress)
 
 - useForm()
 - useField()

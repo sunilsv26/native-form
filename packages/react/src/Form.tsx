@@ -17,12 +17,14 @@ export interface FormProps<
   TValues extends NativeFormValues = TSchema extends SchemaLike
     ? InferSchemaOutput<TSchema>
     : NativeFormValues,
-> extends Omit<FormHTMLAttributes<HTMLFormElement>, "onSubmit"> {
+> extends Omit<FormHTMLAttributes<HTMLFormElement>, "onSubmit" | "onInvalid"> {
   schema?: TSchema;
-  onSubmit?: (
-    values: TValues,
+  onSubmit?: (values: TValues, event?: SubmitEvent) => void | Promise<void>;
+  onInvalid?: (
+    errors: Record<string, string>,
+    values: NativeFormValues,
     event?: SubmitEvent,
-  ) => void | Promise<void>;
+  ) => void;
 }
 
 export function Form<
@@ -34,13 +36,16 @@ export function Form<
   children,
   schema,
   onSubmit,
+  onInvalid,
   ...props
 }: PropsWithChildren<FormProps<TSchema, TValues>>) {
   const formRef = useRef<HTMLFormElement>(null);
   const runtimeRef = useRef<Runtime<TValues> | null>(null);
   const onSubmitRef = useRef(onSubmit);
+  const onInvalidRef = useRef(onInvalid);
 
   onSubmitRef.current = onSubmit;
+  onInvalidRef.current = onInvalid;
 
   useLayoutEffect(() => {
     if (!formRef.current) {
@@ -50,6 +55,8 @@ export function Form<
     const runtime = new Runtime<TValues>({
       schema: schema as SchemaLike<TValues> | undefined,
       onSubmit: (values, event) => onSubmitRef.current?.(values, event),
+      onInvalid: (errors, values, event) =>
+        onInvalidRef.current?.(errors, values, event),
     });
 
     runtime.mount(formRef.current);

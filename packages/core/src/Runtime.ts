@@ -18,7 +18,9 @@ import {
   Validator,
 } from "./Validation";
 
-export interface RuntimeOptions<TValues extends NativeFormValues = NativeFormValues> {
+export interface RuntimeOptions<
+  TValues extends NativeFormValues = NativeFormValues,
+> {
   schema?: SchemaLike<TValues>;
   validator?: Validator<TValues>;
   onSubmit?: (values: TValues, event?: SubmitEvent) => void | Promise<void>;
@@ -158,7 +160,9 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     void this.runSubmit(event);
   };
 
-  private async runSubmit(event?: SubmitEvent): Promise<ValidationResult<TValues>> {
+  private async runSubmit(
+    event?: SubmitEvent,
+  ): Promise<ValidationResult<TValues>> {
     if (!this.form) {
       throw new Error("Runtime is not mounted.");
     }
@@ -213,7 +217,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     this.fieldStateStore.setErrors(this.errors);
     this.applyNativeErrors();
 
-    const nativeIssues = this.getNativeValidationIssues();
+    const nativeIssues = this.validator ? [] : this.getNativeValidationIssues();
 
     if (nativeIssues.length > 0) {
       const result: ValidationResult<TValues> = {
@@ -227,14 +231,13 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
       return result;
     }
 
-    const result =
-      (await this.validator?.validate(values, {
-        form: this.form,
-        signal: this.validationController.signal,
-      })) ?? {
-        success: true,
-        values: values as TValues,
-      };
+    const result = (await this.validator?.validate(values, {
+      form: this.form,
+      signal: this.validationController.signal,
+    })) ?? {
+      success: true,
+      values: values as TValues,
+    };
 
     if (!this.validationController.signal.aborted) {
       this.applyValidationResult(result, values);
@@ -255,7 +258,10 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     const value = values[element.name];
 
     this.fieldStateStore.updateValue(element.name, value);
-    this.clearFieldError(element.name);
+
+    void this.runValidation(values).then(() => {
+      this.options.onInvalid?.(this.errors, values);
+    });
 
     this.notify({
       type: "field:update",
@@ -331,7 +337,10 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     }
 
     this.registry.register(new FieldNode(element));
-    this.fieldStateStore.register(element.name, this.getFieldValue(element.name));
+    this.fieldStateStore.register(
+      element.name,
+      this.getFieldValue(element.name),
+    );
   }
 
   private getFieldValue(name: string): NativeFormValue | undefined {
@@ -404,15 +413,16 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     }
   }
 
-  private clearFieldError(name: string): void {
+  private clearFieldError(name: string): boolean {
     if (!(name in this.errors)) {
-      return;
+      return false;
     }
 
     this.errors = { ...this.errors };
     delete this.errors[name];
     this.fieldStateStore.setErrors(this.errors);
     this.applyNativeErrors();
+    return true;
   }
 
   private getNativeValidationIssues(): ValidationIssue[] {
@@ -443,7 +453,9 @@ function issuesToErrors(issues: ValidationIssue[]): Record<string, string> {
   return errors;
 }
 
-function toNativeFormElement(target: EventTarget | null): NativeFormElement | null {
+function toNativeFormElement(
+  target: EventTarget | null,
+): NativeFormElement | null {
   if (
     target instanceof HTMLInputElement ||
     target instanceof HTMLSelectElement ||

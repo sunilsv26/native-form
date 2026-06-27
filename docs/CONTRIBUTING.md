@@ -46,6 +46,11 @@ Adapter or pipeline changes must include/update tests for:
 - precedence behavior (`pipeline` over `schema`/`validator`)
 - field-triggered path behavior (`validateField`) with capability-aware branching
 
+Runtime API boundary changes must include/update:
+
+- runtime method-level contract checks in `packages/core/test/RuntimeApiContract.test.ts`
+- runtime public key freeze checks in `packages/core/test/RuntimePublicSurface.test.ts`
+
 ## Runtime Contract Notes
 
 - `FieldNode` remains the single source of truth for per-field state.

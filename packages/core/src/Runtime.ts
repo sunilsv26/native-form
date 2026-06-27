@@ -59,6 +59,15 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     const schema = options.schema ?? options.validator;
 
     this.validator = schema ? createValidator(schema) : undefined;
+
+    // Subscribe to registry lifecycle changes so Runtime can emit events.
+    this.registry.onChange = (e) => {
+      if (e.type === "mount") {
+        this.notify({ type: "field:mount", field: e.field.name });
+      } else {
+        this.notify({ type: "field:unmount", field: e.field.name });
+      }
+    };
   }
 
   mount(form: HTMLFormElement) {
@@ -394,13 +403,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
 
     for (const field of this.registry.values()) {
       field.register(values[field.name]);
-
-      if (!previous.has(field.name)) {
-        this.notify({
-          type: "field:mount",
-          field: field.name,
-        });
-      }
+      // registry will emit mount notifications via `onChange`.
     }
 
     for (const name of previous) {
@@ -410,10 +413,6 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
 
       // registry.unregister already handles node cleanup
       this.registry.unregister(name);
-      this.notify({
-        type: "field:unmount",
-        field: name,
-      });
     }
   }
 

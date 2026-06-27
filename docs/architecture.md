@@ -383,8 +383,12 @@ Contract rules:
 
 - Runtime never performs schema-specific validation itself.
 - Pipeline receives abort signal and field context.
-- Without schema/validator, default pipeline uses native browser validity.
-- Custom/injected pipeline takes precedence over schema/validator options.
+- Validation precedence is explicit and deterministic:
+  1. Injected `pipeline` option
+  2. `schema` option
+  3. `validator` option
+  4. Native browser validity fallback
+- Without schema/validator/pipeline, default pipeline uses native browser validity.
 
 ---
 

@@ -58,9 +58,15 @@ export function useForm<
 
   const onSubmitRef = useRef(options.onSubmit);
   const onInvalidRef = useRef(options.onInvalid);
+  const schemaRef = useRef(options.schema);
+  const validatorRef = useRef(options.validator);
+  const pipelineRef = useRef(options.pipeline);
 
   onSubmitRef.current = options.onSubmit;
   onInvalidRef.current = options.onInvalid;
+  schemaRef.current = options.schema;
+  validatorRef.current = options.validator;
+  pipelineRef.current = options.pipeline;
 
   useLayoutEffect(() => {
     if (!formRef.current) {
@@ -68,9 +74,9 @@ export function useForm<
     }
 
     const runtime = new Runtime<TValues>({
-      schema: options.schema as SchemaLike<TValues> | undefined,
-      validator: options.validator,
-      pipeline: options.pipeline,
+      schema: schemaRef.current as SchemaLike<TValues> | undefined,
+      validator: validatorRef.current,
+      pipeline: pipelineRef.current,
       onSubmit: (values, event) => onSubmitRef.current?.(values, event),
       onInvalid: (errors, values, event) =>
         onInvalidRef.current?.(errors, values, event),
@@ -88,9 +94,8 @@ export function useForm<
       unsubscribe();
       runtime.unmount();
       runtimeRef.current = null;
-      setFormState(createEmptyFormState());
     };
-  }, [options.schema, options.validator, options.pipeline]);
+  }, []);
 
   return {
     formRef,

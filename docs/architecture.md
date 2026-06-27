@@ -2,6 +2,8 @@
 
 > Native HTML first. Headless by default. Zero registration.
 
+Contributor workflow and checklists: see `docs/CONTRIBUTING.md`.
+
 ---
 
 # Vision

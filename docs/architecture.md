@@ -476,6 +476,22 @@ Contains only schema integration.
 
 ---
 
+# Stabilization Notes
+
+Recent core stabilization changes introduced explicit contracts:
+
+- `FieldNode` is the single source of truth for per-field state (`mounted`, `dirty`, `touched`, `value`, `error`).
+- Runtime emits deterministic field lifecycle events (see Event-Order Contract).
+- Validation moved behind `ValidationPipeline`.
+- Pipeline invocation precedence is explicit: `pipeline` > `schema` > `validator` > native.
+- Pipeline capabilities now declare field-scoped support:
+  - `supportsFieldScopedValidation: true` -> Runtime uses `validateField` for input/change.
+  - `supportsFieldScopedValidation: false` -> Runtime uses `validate` for input/change.
+
+These contracts are covered by unit tests in `packages/core/test`.
+
+---
+
 # Non Goals
 
 Native Form is not trying to replace HTML.

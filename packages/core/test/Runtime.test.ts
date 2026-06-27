@@ -45,6 +45,33 @@ describe("Runtime", () => {
     });
   });
 
+  it("serializes and tracks select-multiple values through change lifecycle", async () => {
+    const form = createForm(`
+      <select name="tags" multiple>
+        <option value="a">A</option>
+        <option value="b">B</option>
+        <option value="c">C</option>
+      </select>
+    `);
+    const select = form.elements.namedItem("tags") as HTMLSelectElement;
+    const runtime = new Runtime();
+
+    runtime.mount(form);
+
+    select.options[0].selected = true;
+    select.options[2].selected = true;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    await Promise.resolve();
+
+    expect(runtime.serialize()).toEqual({
+      tags: ["a", "c"],
+    });
+    expect(runtime.getFieldState("tags")).toMatchObject({
+      value: ["a", "c"],
+      dirty: true,
+    });
+  });
+
   it("tracks dirty, touched, and native reset state", async () => {
     const form = createForm('<input name="email" value="a@example.com" />');
     const input = form.elements.namedItem("email") as HTMLInputElement;

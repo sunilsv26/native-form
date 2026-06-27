@@ -4,6 +4,12 @@
 
 Contributor workflow and checklists: see [docs/CONTRIBUTING.md](CONTRIBUTING.md).
 
+Module deep-dives:
+
+- Runtime: [docs/RUNTIME.md](RUNTIME.md)
+- FieldNode: [docs/FIELDNODE.md](FIELDNODE.md)
+- Validation: [docs/VALIDATION.md](VALIDATION.md)
+
 ---
 
 ## Vision

@@ -96,6 +96,8 @@ pnpm build
 
 If behavior changes, update [docs/architecture.md](architecture.md) alongside code and tests.
 
+If public API changes, update [docs/API.md](API.md) in the same PR.
+
 If design boundaries or lifecycle contracts change, update both:
 
 - [docs/DESIGN.md](DESIGN.md)

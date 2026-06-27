@@ -2,22 +2,23 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { FieldNode } from "../src/FieldNode";
 import {
   createValidationPipeline,
-  ValidationPipeline,
+  ValidationFieldMeta,
 } from "../src/ValidationPipeline";
 import { StandardSchemaV1, Validator } from "../src/Validation";
+
+function field(name: string, validationMessage = ""): ValidationFieldMeta {
+  return {
+    name,
+    validationMessage,
+  };
+}
 
 describe("ValidationPipeline", () => {
   it("uses native validation when no schema/validator is provided", async () => {
     const form = document.createElement("form");
-    const input = document.createElement("input");
-    input.name = "email";
-    input.setCustomValidity("Email is required");
-    form.append(input);
-
-    const field = new FieldNode(input);
+    const emailField = field("email", "Email is required");
     const pipeline = createValidationPipeline();
     const controller = new AbortController();
 
@@ -26,7 +27,7 @@ describe("ValidationPipeline", () => {
       {
         form,
         signal: controller.signal,
-        fields: [field],
+        fields: [emailField],
       },
     );
 
@@ -39,17 +40,8 @@ describe("ValidationPipeline", () => {
 
   it("uses native field-only validation in validateField", async () => {
     const form = document.createElement("form");
-    const email = document.createElement("input");
-    email.name = "email";
-    email.setCustomValidity("Email is required");
-    const password = document.createElement("input");
-    password.name = "password";
-    password.setCustomValidity("Password is required");
-
-    form.append(email, password);
-
-    const emailField = new FieldNode(email);
-    const passwordField = new FieldNode(password);
+    const emailField = field("email", "Email is required");
+    const passwordField = field("password", "Password is required");
     const pipeline = createValidationPipeline();
     const controller = new AbortController();
 
@@ -190,16 +182,14 @@ describe("ValidationPipeline", () => {
     };
     const pipeline = createValidationPipeline({ validator });
     const form = document.createElement("form");
-    const input = document.createElement("input");
-    input.name = "email";
-    const field = new FieldNode(input);
+    const emailField = field("email");
     const controller = new AbortController();
 
     const values = { email: "x@example.com", password: "secret" };
-    const result = await pipeline.validateField(field, values, {
+    const result = await pipeline.validateField(emailField, values, {
       form,
       signal: controller.signal,
-      fields: [field],
+      fields: [emailField],
     });
 
     expect(validator.validate).toHaveBeenCalledOnce();

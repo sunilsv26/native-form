@@ -6,6 +6,7 @@ Contributor workflow and checklists: see [docs/CONTRIBUTING.md](CONTRIBUTING.md)
 
 Module deep-dives:
 
+- API reference: [docs/API.md](API.md)
 - Design specification: [docs/DESIGN.md](DESIGN.md)
 - Lifecycle contract: [docs/LIFECYCLE.md](LIFECYCLE.md)
 - Runtime: [docs/RUNTIME.md](RUNTIME.md)

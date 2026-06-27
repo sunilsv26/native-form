@@ -11,8 +11,6 @@ export class FieldNode {
   private initialValue: NativeFormValue | undefined = undefined;
   private stateValue: NativeFormValue | undefined = undefined;
   private error?: string;
-  // Optional callback to report per-field state changes (used by Runtime).
-  onChange?: (state: FieldState) => void;
 
   get name() {
     return this.element.name;
@@ -85,37 +83,14 @@ export class FieldNode {
     return this.mounted;
   }
 
-  markDirty() {
-    this.dirty = true;
-  }
-
-  mount() {
-    this.mounted = true;
-  }
-
-  unmount() {
-    this.mounted = false;
-  }
-
   // --- New state API (replaces FieldStateStore) ---
   register(initialValue?: NativeFormValue) {
-    if (this.mounted) {
-      this.initialValue = initialValue;
-      this.stateValue = initialValue;
-      this.dirty = false;
-      this.touched = false;
-      this.error = undefined;
-      this.onChange?.(this.getState());
-      return;
-    }
-
     this.mounted = true;
     this.initialValue = initialValue;
     this.stateValue = initialValue;
     this.dirty = false;
     this.touched = false;
     this.error = undefined;
-    this.onChange?.(this.getState());
   }
 
   unregister() {
@@ -138,17 +113,14 @@ export class FieldNode {
     const next = value === undefined ? (this.value as NativeFormValue) : value;
     this.stateValue = next;
     this.dirty = !isEqualValue(this.initialValue, next);
-    this.onChange?.(this.getState());
   }
 
   markTouched() {
     this.touched = true;
-    this.onChange?.(this.getState());
   }
 
   setError(message: string | undefined) {
     this.error = message;
-    this.onChange?.(this.getState());
   }
 
   reset(value: NativeFormValue | undefined) {
@@ -157,7 +129,6 @@ export class FieldNode {
     this.dirty = false;
     this.touched = false;
     this.error = undefined;
-    this.onChange?.(this.getState());
   }
   // --- Lifecycle helpers ---
   // Called when the browser emits input on the control

@@ -53,4 +53,63 @@ describe("Serializer", () => {
       terms: "yes",
     });
   });
+
+  it("serializes checked radio value only", () => {
+    const form = document.createElement("form");
+
+    const basic = document.createElement("input");
+    basic.type = "radio";
+    basic.name = "plan";
+    basic.value = "basic";
+
+    const pro = document.createElement("input");
+    pro.type = "radio";
+    pro.name = "plan";
+    pro.value = "pro";
+    pro.checked = true;
+
+    form.append(basic, pro);
+
+    const serializer = new Serializer();
+
+    expect(serializer.serialize(form)).toEqual({
+      plan: "pro",
+    });
+  });
+
+  it("serializes select-multiple and ignores disabled controls", () => {
+    const form = document.createElement("form");
+
+    const tags = document.createElement("select");
+    tags.name = "tags";
+    tags.multiple = true;
+
+    const tagA = document.createElement("option");
+    tagA.value = "a";
+    tagA.selected = true;
+
+    const tagB = document.createElement("option");
+    tagB.value = "b";
+    tagB.selected = true;
+
+    tags.append(tagA, tagB);
+
+    const enabled = document.createElement("input");
+    enabled.name = "email";
+    enabled.value = "a@example.com";
+
+    const disabled = document.createElement("input");
+    disabled.name = "internal";
+    disabled.value = "secret";
+    disabled.disabled = true;
+
+    form.append(tags, enabled, disabled);
+
+    const serializer = new Serializer();
+
+    expect(serializer.serialize(form)).toEqual({
+      tags: ["a", "b"],
+      email: "a@example.com",
+    });
+  });
 });

@@ -5,6 +5,7 @@ Native HTML-first form runtime and adapters.
 ## Docs
 
 - Architecture: [docs/architecture.md](docs/architecture.md)
+- API reference: [docs/API.md](docs/API.md)
 - Contributing guide: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
 - Design specification: [docs/DESIGN.md](docs/DESIGN.md)
 - Lifecycle contract: [docs/LIFECYCLE.md](docs/LIFECYCLE.md)

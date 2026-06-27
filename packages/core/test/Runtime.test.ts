@@ -28,6 +28,23 @@ describe("Runtime", () => {
     });
   });
 
+  it("respects native serialization semantics for disabled and radio controls", () => {
+    const form = createForm(`
+      <input name="email" value="a@example.com" />
+      <input name="internal" value="secret" disabled />
+      <input type="radio" name="plan" value="basic" />
+      <input type="radio" name="plan" value="pro" checked />
+    `);
+    const runtime = new Runtime();
+
+    runtime.mount(form);
+
+    expect(runtime.serialize()).toEqual({
+      email: "a@example.com",
+      plan: "pro",
+    });
+  });
+
   it("tracks dirty, touched, and native reset state", async () => {
     const form = createForm('<input name="email" value="a@example.com" />');
     const input = form.elements.namedItem("email") as HTMLInputElement;

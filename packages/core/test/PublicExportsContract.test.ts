@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 type CoreValueExportKey =
-  | "Discovery"
-  | "FieldNode"
-  | "FieldRegistry"
   | "Runtime"
-  | "Serializer"
   | "arrayItemPath"
   | "createValidationPipeline"
   | "createValidator"

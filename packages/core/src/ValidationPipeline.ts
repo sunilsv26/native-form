@@ -1,4 +1,3 @@
-import { FieldNode } from "./FieldNode";
 import {
   createValidator,
   SchemaLike,
@@ -9,8 +8,13 @@ import {
 } from "./Validation";
 import { NativeFormFlatValues, NativeFormValues } from "./types";
 
+export interface ValidationFieldMeta {
+  name: string;
+  validationMessage: string;
+}
+
 export interface ValidationPipelineContext extends ValidationContext {
-  fields: FieldNode[];
+  fields: ValidationFieldMeta[];
 }
 
 export interface ValidationPipelineCapabilities {
@@ -61,7 +65,7 @@ export interface ValidationPipeline<
    * Used for input/change-triggered validation when supported.
    */
   validateField(
-    field: FieldNode,
+    field: ValidationFieldMeta,
     values: NativeFormFlatValues,
     context: ValidationPipelineContext,
   ): ValidationResult<TValues> | Promise<ValidationResult<TValues>>;
@@ -134,9 +138,9 @@ export function createValidationPipeline<
 }
 
 function getNativeValidationIssue(
-  field: FieldNode,
+  field: ValidationFieldMeta,
 ): ValidationIssue | undefined {
-  const validationMessage = field.element.validationMessage;
+  const validationMessage = field.validationMessage;
 
   if (!validationMessage) {
     return undefined;
@@ -148,11 +152,13 @@ function getNativeValidationIssue(
   };
 }
 
-function getNativeValidationIssues(fields: FieldNode[]): ValidationIssue[] {
+function getNativeValidationIssues(
+  fields: ValidationFieldMeta[],
+): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   for (const field of fields) {
-    const validationMessage = field.element.validationMessage;
+    const validationMessage = field.validationMessage;
 
     if (validationMessage) {
       issues.push({

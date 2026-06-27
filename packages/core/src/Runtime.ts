@@ -3,9 +3,14 @@ import { FieldErrorRenderer } from "./FieldErrorRenderer";
 import { FieldNode } from "./FieldNode";
 import { FieldRegistry } from "./FieldRegistry";
 import { FieldState } from "./FieldState";
+import {
+  isRuntimeMutationRelevant,
+  runtimeMutationObserverOptions,
+} from "./RuntimeMutationPolicy";
 import { Serializer } from "./Serializer";
 import {
   createValidationPipeline,
+  ValidationFieldMeta,
   ValidationPipeline,
 } from "./ValidationPipeline";
 import {
@@ -51,7 +56,7 @@ export interface RuntimeFormState {
 export interface RuntimePublicApi<
   TValues extends NativeFormValues = NativeFormValues,
 > {
-  readonly fields: FieldNode[];
+  readonly fields: FieldState[];
   mount(form: HTMLFormElement): void;
   unmount(): void;
   serialize(): NativeFormFlatValues;
@@ -128,12 +133,7 @@ export class Runtime<
     form.addEventListener("blur", this.handleFieldBlur, true);
     form.addEventListener("reset", this.handleReset);
     this.observer = new MutationObserver(this.handleMutation);
-    this.observer.observe(form, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["name", "disabled"],
-    });
+    this.observer.observe(form, runtimeMutationObserverOptions);
     this.notify({
       type: "form:mount",
     });
@@ -175,8 +175,8 @@ export class Runtime<
     return this.serializer.serialize(this.form);
   }
 
-  get fields() {
-    return this.registry.values();
+  get fields(): FieldState[] {
+    return this.getFieldStates();
   }
 
   subscribe(listener: RuntimeListener): () => void {
@@ -281,7 +281,7 @@ export class Runtime<
     const result = await this.pipeline.validate(values, {
       form: this.form,
       signal: this.validationController.signal,
-      fields: this.registry.values(),
+      fields: this.getValidationFields(),
     });
 
     if (!this.validationController.signal.aborted) {
@@ -389,13 +389,14 @@ export class Runtime<
     const context = {
       form: this.form,
       signal: this.validationController.signal,
-      fields: this.registry.values(),
+      fields: this.getValidationFields(),
     };
+    const activeField = this.toValidationField(field);
     const supportsFieldScopedValidation =
       this.pipeline.capabilities?.supportsFieldScopedValidation ?? true;
 
     const result = supportsFieldScopedValidation
-      ? await this.pipeline.validateField(field, values, context)
+      ? await this.pipeline.validateField(activeField, values, context)
       : await this.pipeline.validate(values, context);
 
     if (!this.validationController.signal.aborted) {
@@ -472,6 +473,17 @@ export class Runtime<
     return this.serializer.serialize(this.form)[name];
   }
 
+  private getValidationFields(): ValidationFieldMeta[] {
+    return this.registry.values().map((field) => this.toValidationField(field));
+  }
+
+  private toValidationField(field: FieldNode): ValidationFieldMeta {
+    return {
+      name: field.name,
+      validationMessage: field.element.validationMessage,
+    };
+  }
+
   private syncFields(): void {
     if (!this.form) {
       return;
@@ -505,32 +517,12 @@ export class Runtime<
   }
 
   private handleMutation = (mutations: MutationRecord[]) => {
-    if (!mutations.some((mutation) => this.isRelevantMutation(mutation))) {
+    if (!mutations.some(isRuntimeMutationRelevant)) {
       return;
     }
 
     this.syncFields();
   };
-
-  private isRelevantMutation(mutation: MutationRecord): boolean {
-    if (mutation.type === "attributes") {
-      return isNativeFormControl(mutation.target as Node);
-    }
-
-    if (mutation.type === "childList") {
-      const nodes = [...mutation.addedNodes, ...mutation.removedNodes];
-
-      return nodes.some((node) => {
-        if (isErrorLabel(node)) {
-          return false;
-        }
-
-        return isNativeFormControl(node) || containsNativeFormControl(node);
-      });
-    }
-
-    return false;
-  }
 
   private applyValidationResult(
     result: ValidationResult<TValues>,
@@ -561,27 +553,8 @@ export class Runtime<
     this.fieldErrorRenderer.applyErrors(this.registry.values(), this.errors);
 
     if (observer && this.form) {
-      observer.observe(this.form, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ["name", "disabled"],
-      });
+      observer.observe(this.form, runtimeMutationObserverOptions);
     }
-  }
-
-  private clearFieldError(name: string): boolean {
-    if (!(name in this.errors)) {
-      return false;
-    }
-
-    this.errors = { ...this.errors };
-    delete this.errors[name];
-    for (const field of this.registry.values()) {
-      field.setError(this.errors[field.name]);
-    }
-    this.applyNativeErrors();
-    return true;
   }
 }
 
@@ -593,25 +566,6 @@ function issuesToErrors(issues: ValidationIssue[]): Record<string, string> {
   }
 
   return errors;
-}
-
-function isNativeFormControl(node: Node): boolean {
-  return (
-    node instanceof HTMLInputElement ||
-    node instanceof HTMLSelectElement ||
-    node instanceof HTMLTextAreaElement
-  );
-}
-
-function containsNativeFormControl(node: Node): boolean {
-  return (
-    node instanceof HTMLElement &&
-    Boolean(node.querySelector("input[name], select[name], textarea[name]"))
-  );
-}
-
-function isErrorLabel(node: Node): boolean {
-  return node instanceof HTMLElement && node.dataset.nativeFormError === "true";
 }
 
 function toNativeFormElement(

@@ -2,6 +2,7 @@ import { Discovery } from "./Discovery";
 import { FieldErrorRenderer } from "./FieldErrorRenderer";
 import { FieldNode } from "./FieldNode";
 import { FieldRegistry } from "./FieldRegistry";
+import { FieldState } from "./FieldState";
 import { Serializer } from "./Serializer";
 import {
   createValidationPipeline,
@@ -36,7 +37,36 @@ export interface RuntimeOptions<
   ) => void;
 }
 
-export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
+export interface RuntimeFormState {
+  dirty: boolean;
+  touched: boolean;
+  valid: boolean;
+  submitting: boolean;
+  validating: boolean;
+  errors: Record<string, string>;
+  fields: FieldState[];
+  values: NativeFormFlatValues;
+}
+
+export interface RuntimePublicApi<
+  TValues extends NativeFormValues = NativeFormValues,
+> {
+  readonly fields: FieldNode[];
+  mount(form: HTMLFormElement): void;
+  unmount(): void;
+  serialize(): NativeFormFlatValues;
+  validate(): Promise<ValidationResult<TValues>>;
+  submit(event?: SubmitEvent): Promise<ValidationResult<TValues>>;
+  subscribe(listener: RuntimeListener): () => void;
+  unsubscribe(listener: RuntimeListener): void;
+  getFieldState(name: string): FieldState | undefined;
+  getFieldStates(): FieldState[];
+  getFormState(): RuntimeFormState;
+}
+
+export class Runtime<
+  TValues extends NativeFormValues = NativeFormValues,
+> implements RuntimePublicApi<TValues> {
   private readonly registry = new FieldRegistry();
 
   private readonly discovery = new Discovery();
@@ -409,7 +439,7 @@ export class Runtime<TValues extends NativeFormValues = NativeFormValues> {
     return this.registry.values().map((f) => f.getState());
   }
 
-  getFormState() {
+  getFormState(): RuntimeFormState {
     const fields = this.getFieldStates();
 
     return {

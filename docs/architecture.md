@@ -232,6 +232,22 @@ const form = useForm();
 const email = useField("email");
 ```
 
+Runtime API (frozen surface)
+
+```ts
+runtime.mount(form);
+runtime.unmount();
+runtime.serialize();
+runtime.validate();
+runtime.submit();
+runtime.subscribe(listener);
+runtime.unsubscribe(listener);
+runtime.getFieldState(name);
+runtime.getFieldStates();
+runtime.getFormState();
+runtime.fields;
+```
+
 These APIs should remain optional.
 
 The HTML API must always remain first-class.

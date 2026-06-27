@@ -696,6 +696,33 @@ describe("Runtime", () => {
     });
   });
 
+  it("unregisters fields removed after mount and emits unmount events", async () => {
+    const form = createForm(`
+      <input name="email" value="a@example.com" />
+      <input name="password" value="secret" />
+    `);
+    const runtime = new Runtime();
+    const listener = vi.fn();
+
+    runtime.subscribe(listener);
+    runtime.mount(form);
+
+    const password = form.elements.namedItem("password") as HTMLInputElement;
+    password.remove();
+
+    await Promise.resolve();
+
+    expect(runtime.fields.map((field) => field.name)).toEqual(["email"]);
+    expect(runtime.serialize()).toEqual({
+      email: "a@example.com",
+    });
+    expect(runtime.getFieldState("password")).toBeUndefined();
+    expect(listener).toHaveBeenCalledWith({
+      type: "field:unmount",
+      field: "password",
+    });
+  });
+
   it("emits normalized lifecycle events for field interactions", async () => {
     const form = createForm('<input name="email" value="a@example.com" />');
     const input = form.elements.namedItem("email") as HTMLInputElement;

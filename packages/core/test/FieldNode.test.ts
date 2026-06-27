@@ -73,4 +73,29 @@ describe("FieldNode", () => {
       touched: false,
     });
   });
+
+  it("tracks file input values from the native files property", () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.name = "avatar";
+
+    const file = new File(["avatar"], "avatar.png", { type: "image/png" });
+    const files = [file] as unknown as FileList;
+
+    Object.defineProperty(input, "files", {
+      value: files,
+      configurable: true,
+    });
+
+    const node = new FieldNode(input);
+
+    node.register(undefined);
+    node.updateValue();
+
+    expect(node.getState()).toMatchObject({
+      name: "avatar",
+      value: files,
+      dirty: true,
+    });
+  });
 });

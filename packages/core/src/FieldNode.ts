@@ -238,8 +238,9 @@ export class FieldNode {
   }
 
   updateValue(value: NativeFormValue | undefined) {
-    this.stateValue = value;
-    this.dirty = !isEqualValue(this.initialValue, value);
+    const next = value === undefined ? (this.value as NativeFormValue) : value;
+    this.stateValue = next;
+    this.dirty = !isEqualValue(this.initialValue, next);
   }
 
   markTouched() {
@@ -248,6 +249,14 @@ export class FieldNode {
 
   setError(message: string | undefined) {
     this.error = message;
+    // reflect to DOM validity and inline error label
+    try {
+      this.element.setCustomValidity(message ?? "");
+    } catch (_e) {
+      // some elements may not support setCustomValidity in tests
+    }
+
+    this.updateError(message);
   }
 
   reset(value: NativeFormValue | undefined) {
@@ -257,7 +266,37 @@ export class FieldNode {
     this.touched = false;
     this.error = undefined;
   }
-}
+  // --- Lifecycle helpers ---
+  // Called when the browser emits input on the control
+  handleInput() {
+    this.updateValue();
+  }
+
+  // Called when the browser emits change on the control
+  handleChange() {
+    this.updateValue();
+  }
+
+  // Called when the control is blurred
+  handleBlur() {
+    this.markTouched();
+  }
+
+  // Called when the form is reset
+  handleReset() {
+    const initial = this.initialValue ?? (this.value as NativeFormValue);
+    this.reset(initial);
+    this.setError(undefined);
+    try {
+      this.element.setCustomValidity("");
+    } catch (_e) {}
+  }
+
+  // Called when the form is submitted (mark touched)
+  handleSubmit() {
+    this.markTouched();
+  }
+
 
 function isEqualValue(
   left: NativeFormValue | undefined,

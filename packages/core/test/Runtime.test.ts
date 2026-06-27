@@ -378,6 +378,33 @@ describe("Runtime", () => {
     expect(pipeline.validate).toHaveBeenCalledOnce();
     expect(pipeline.validateField).not.toHaveBeenCalled();
   });
+
+  it("defaults to validateField on input when pipeline capabilities are omitted", async () => {
+    const form = createForm('<input name="email" value="" />');
+    const email = form.elements.namedItem("email") as HTMLInputElement;
+    const pipeline = {
+      validate: vi.fn(() => ({
+        success: true,
+        values: { email: "" },
+      })),
+      validateField: vi.fn(() => ({
+        success: false,
+        issues: [{ name: "email", message: "Email is required" }],
+      })),
+    };
+    const runtime = new Runtime({ pipeline });
+
+    runtime.mount(form);
+
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+
+    expect(pipeline.validateField).toHaveBeenCalled();
+    expect(pipeline.validate).not.toHaveBeenCalled();
+    expect(runtime.getFormState().errors).toEqual({
+      email: "Email is required",
+    });
+  });
 });
 
 function createForm(markup: string): HTMLFormElement {

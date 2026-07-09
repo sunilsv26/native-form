@@ -1247,6 +1247,77 @@ describe("Runtime", () => {
 
     expect(runtime.getFormState().errors).toEqual({});
   });
+
+  it("keeps submit result authoritative when submit starts during in-flight field validation", async () => {
+    const form = createForm('<input name="email" value="" />');
+    const input = form.elements.namedItem("email") as HTMLInputElement;
+    const events: string[] = [];
+    const pending: Array<{
+      resolve: (result: ValidationResult<NativeFormValues>) => void;
+      signal: AbortSignal;
+    }> = [];
+    const validator: Validator = {
+      validate: vi.fn(
+        (values, context) =>
+          new Promise<ValidationResult<NativeFormValues>>((resolve) => {
+            pending.push({ resolve, signal: context.signal });
+
+            events.push(`validate:${String(values.email ?? "")}`);
+          }),
+      ),
+    };
+    const runtime = new Runtime({ validator });
+
+    runtime.subscribe((event) => {
+      events.push(event.type);
+    });
+    runtime.mount(form);
+
+    input.value = "first";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+
+    expect(pending.length).toBe(1);
+    expect(runtime.getFormState().validating).toBe(true);
+
+    const submitPromise = runtime.submit();
+
+    expect(pending.length).toBe(2);
+    expect(pending[0].signal.aborted).toBe(true);
+    expect(pending[1].signal.aborted).toBe(false);
+
+    // Resolve the stale field validation late: it should not overwrite submit state.
+    pending[0].resolve({
+      success: false,
+      issues: [{ name: "email", message: "Stale input error" }],
+    });
+    await Promise.resolve();
+
+    expect(runtime.getFormState().errors).toEqual({});
+
+    pending[1].resolve({
+      success: false,
+      issues: [{ name: "email", message: "Submit error" }],
+    });
+
+    await expect(submitPromise).resolves.toEqual({
+      success: false,
+      issues: [{ name: "email", message: "Submit error" }],
+    });
+
+    expect(runtime.getFormState().errors).toEqual({ email: "Submit error" });
+    expect(runtime.getFieldState("email")).toMatchObject({
+      error: "Submit error",
+    });
+    expect(runtime.getFormState().validating).toBe(false);
+
+    expect(events.filter((event) => event === "validation:start")).toHaveLength(
+      2,
+    );
+    expect(events.filter((event) => event === "validation:end")).toHaveLength(
+      1,
+    );
+    expect(events).toContain("form:invalid");
+  });
 });
 
 function createForm(markup: string): HTMLFormElement {

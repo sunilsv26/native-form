@@ -4,7 +4,7 @@ Runtime is the core orchestrator in @native-form/core.
 
 It owns form lifecycle wiring, discovery sync, serialization snapshots, validation execution, and event emission.
 
-Source: packages/core/src/Runtime.ts
+Source: packages/core/src/runtime/Runtime.ts
 
 ## Responsibilities
 
@@ -52,6 +52,8 @@ Contract type: RuntimePublicApi in packages/core/src/Runtime.ts.
 
 - Runtime chooses validateField or validate depending on pipeline capabilities.
 - Emits validation:start and validation:end around active validation.
+- Latest-wins cancellation is enforced for overlapping validations.
+- Stale or aborted validations do not trigger submit or invalid side effects.
 - On invalid submit, emits form:invalid and skips form:submit.
 
 4. unmount

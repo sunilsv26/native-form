@@ -4,9 +4,9 @@ This plan describes how to execute [docs/ISSUE_BACKLOG.md](docs/ISSUE_BACKLOG.md
 
 ## Execution Status
 
-- Completed: NF-001, NF-002, NF-003.
+- Completed: NF-001, NF-002, NF-003, NF-004, NF-005.
 - Verification: pnpm verify is green after implementation.
-- Current focus: NF-004 (browser edge-case tests), then NF-005 (async cancellation semantics).
+- Current focus: NF-008 (v0.1 release readiness checklist and publish candidate validation).
 
 ## 1. Delivery Objectives
 

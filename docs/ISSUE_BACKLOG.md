@@ -300,6 +300,180 @@ Acceptance criteria:
 - Design note with tradeoffs and migration path.
 - Decision captured with rationale and impact.
 
+## Milestone v0.4 (Adoption Readiness)
+
+### NF-013 React adapter integration test foundation
+
+- Type: test
+- Priority: p0
+- Area: tests
+- Milestone: v0.4
+- Estimate: 3-4 days
+- Dependencies: NF-005
+
+Scope:
+
+- Add integration tests for Form, useForm, and useField runtime wiring.
+- Verify submit success path, invalid path, and lifecycle mount/unmount behavior.
+- Verify field error/value/invalid synchronization from runtime formState.
+
+Implementation files:
+
+- packages/react/src/Form.tsx
+- packages/react/src/useForm.ts
+- packages/react/src/useField.ts
+- packages/react/test/Form.test.tsx
+- packages/react/test/useForm.test.tsx
+- packages/react/test/useField.test.tsx
+
+Acceptance criteria:
+
+- React tests run in workspace test command.
+- Tests are deterministic and pass in CI.
+- No regression in core runtime contract tests.
+
+---
+
+### NF-014 Yup adapter MVP
+
+- Type: feature
+- Priority: p0
+- Area: validation
+- Milestone: v0.4
+- Estimate: 2-3 days
+- Dependencies: NF-013
+
+Scope:
+
+- Introduce @native-form/yup adapter package with resolver API similar to zod adapter.
+- Map nested and array issue paths to dotted field names.
+- Ensure validator output conforms to core ValidationResult contract.
+
+Implementation files:
+
+- packages/yup/package.json
+- packages/yup/tsconfig.json
+- packages/yup/src/index.ts
+- packages/yup/test/yupResolver.test.ts
+- pnpm-workspace.yaml
+
+Acceptance criteria:
+
+- Yup resolver returns Validator-compatible behavior.
+- Nested and array path behavior is covered by tests.
+- Workspace verify remains green.
+
+---
+
+### NF-015 Adapter contract test matrix
+
+- Type: test
+- Priority: p1
+- Area: validation
+- Milestone: v0.4
+- Estimate: 2-3 days
+- Dependencies: NF-014
+
+Scope:
+
+- Add shared adapter contract test cases and run them for zod and yup adapters.
+- Cover path normalization, success typing shape, and failure issue mapping.
+
+Implementation files:
+
+- packages/zod/test/contracts/adapterContract.test.ts
+- packages/yup/test/contracts/adapterContract.test.ts
+- packages/core/src/validation/Validation.ts
+
+Acceptance criteria:
+
+- Both adapters pass the same contract suite.
+- Contract failures clearly identify adapter behavior drift.
+
+---
+
+### NF-016 Migration and positioning docs
+
+- Type: docs
+- Priority: p1
+- Area: docs
+- Milestone: v0.4
+- Estimate: 1-2 days
+- Dependencies: NF-014
+
+Scope:
+
+- Document migration from React Hook Form and Formik mental models.
+- Clarify where Native Form differs and where it matches common workflows.
+- Add adapter usage examples for zod and yup.
+
+Implementation files:
+
+- README.md
+- docs/ROADMAP.md
+- docs/MIGRATION_RHF.md
+
+Acceptance criteria:
+
+- New docs explain no-registration model with concrete migration examples.
+- README docs links include roadmap and migration docs.
+
+---
+
+### NF-017 Field array ergonomics layer
+
+- Type: feature
+- Priority: p0
+- Area: core-runtime
+- Milestone: v0.4
+- Estimate: 5-8 days
+- Dependencies: NF-010
+
+Scope:
+
+- Build ergonomic helpers for indexed field workflows on top of existing array path foundation.
+- Preserve DOM-first behavior and no-registration model.
+
+Implementation files:
+
+- packages/core/src/Path.ts
+- packages/core/src/runtime/Runtime.ts
+- packages/core/test/Path.test.ts
+- packages/core/test/Runtime.test.ts
+
+Acceptance criteria:
+
+- Add/remove/reorder indexed fields remains stable for values and errors.
+- Validation and error projection remain correct for array paths.
+
+---
+
+### NF-018 Watch and selector ergonomics
+
+- Type: feature
+- Priority: p1
+- Area: react
+- Milestone: v0.4
+- Estimate: 3-5 days
+- Dependencies: NF-013
+
+Scope:
+
+- Add selective subscription ergonomics for form and field slices.
+- Improve developer ergonomics for RHF-like watch use cases without controlled component APIs.
+
+Implementation files:
+
+- packages/react/src/useForm.ts
+- packages/react/src/useField.ts
+- packages/react/src/index.ts
+- packages/react/test/watchSelectors.test.tsx
+
+Acceptance criteria:
+
+- Consumers can subscribe to targeted state slices with deterministic updates.
+- No registration or controller-style API introduced.
+
 ## Suggested Sprint Order (v0.1)
 
 - Sprint 1: NF-001, NF-003

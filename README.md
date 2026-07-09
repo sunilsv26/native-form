@@ -6,6 +6,9 @@ Native HTML-first form runtime and adapters.
 
 - Architecture: [docs/architecture.md](docs/architecture.md)
 - API reference: [docs/API.md](docs/API.md)
+- Product roadmap: [docs/ROADMAP.md](docs/ROADMAP.md)
+- Weekly execution board: [docs/WEEKLY_EXECUTION_BOARD.md](docs/WEEKLY_EXECUTION_BOARD.md)
+- RHF/Formik migration guide: [docs/MIGRATION_RHF.md](docs/MIGRATION_RHF.md)
 - Contributing guide: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
 - Design specification: [docs/DESIGN.md](docs/DESIGN.md)
 - Lifecycle contract: [docs/LIFECYCLE.md](docs/LIFECYCLE.md)

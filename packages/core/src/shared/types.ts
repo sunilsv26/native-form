@@ -31,7 +31,7 @@ export type RuntimeEventType =
   | "field:reset"
   | "field:submit";
 
-export type RuntimeEvent =
+export type FormEvents =
   | {
       type: "form:mount" | "form:unmount";
     }
@@ -40,14 +40,23 @@ export type RuntimeEvent =
       values: NativeFormValues;
     }
   | {
-      type: "form:invalid" | "validation:end";
+      type: "form:invalid";
       errors: Record<string, string>;
       values: NativeFormValues;
-    }
+    };
+
+export type ValidationEvents =
   | {
       type: "validation:start";
       values: NativeFormValues;
     }
+  | {
+      type: "validation:end";
+      errors: Record<string, string>;
+      values: NativeFormValues;
+    };
+
+export type FieldEvents =
   | {
       type:
         | "field:blur"
@@ -63,5 +72,7 @@ export type RuntimeEvent =
       type: "field:mount" | "field:unmount" | "field:submit";
       field: string;
     };
+
+export type RuntimeEvent = FieldEvents | ValidationEvents | FormEvents;
 
 export type RuntimeListener = (event: RuntimeEvent) => void;

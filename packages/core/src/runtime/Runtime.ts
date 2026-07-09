@@ -69,6 +69,13 @@ export interface RuntimePublicApi<
   getFormState(): RuntimeFormState;
 }
 
+type FieldRuntimeEvent = Extract<RuntimeEvent, { type: `field:${string}` }>;
+type ValidationRuntimeEvent = Extract<
+  RuntimeEvent,
+  { type: `validation:${string}` }
+>;
+type FormRuntimeEvent = Extract<RuntimeEvent, { type: `form:${string}` }>;
+
 export class Runtime<
   TValues extends NativeFormValues = NativeFormValues,
 > implements RuntimePublicApi<TValues> {
@@ -109,9 +116,9 @@ export class Runtime<
     // Subscribe to registry lifecycle changes so Runtime can emit events.
     this.registry.onChange = (e) => {
       if (e.type === "mount") {
-        this.notify({ type: "field:mount", field: e.field.name });
+        this.emitFieldEvent({ type: "field:mount", field: e.field.name });
       } else {
-        this.notify({ type: "field:unmount", field: e.field.name });
+        this.emitFieldEvent({ type: "field:unmount", field: e.field.name });
       }
     };
   }
@@ -134,7 +141,7 @@ export class Runtime<
     form.addEventListener("reset", this.handleReset);
     this.observer = new MutationObserver(this.handleMutation);
     this.observer.observe(form, runtimeMutationObserverOptions);
-    this.notify({
+    this.emitFormEvent({
       type: "form:mount",
     });
   }
@@ -160,7 +167,7 @@ export class Runtime<
     this.submitting = false;
     this.validating = false;
 
-    this.notify({
+    this.emitFormEvent({
       type: "form:unmount",
     });
 
@@ -197,8 +204,20 @@ export class Runtime<
     }
   }
 
+  private emitFieldEvent(event: FieldRuntimeEvent): void {
+    this.notify(event);
+  }
+
+  private emitValidationEvent(event: ValidationRuntimeEvent): void {
+    this.notify(event);
+  }
+
+  private emitFormEvent(event: FormRuntimeEvent): void {
+    this.notify(event);
+  }
+
   submit(event?: SubmitEvent) {
-    return this.runSubmit(event);
+    return this.processSubmitFlow(event);
   }
 
   validate() {
@@ -207,10 +226,10 @@ export class Runtime<
 
   private handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
-    void this.runSubmit(event);
+    void this.processSubmitFlow(event);
   };
 
-  private async runSubmit(
+  private async processSubmitFlow(
     event?: SubmitEvent,
   ): Promise<ValidationResult<TValues>> {
     if (!this.form) {
@@ -221,7 +240,7 @@ export class Runtime<
     // lifecycle: mark fields as submitted/touched
     for (const field of this.registry.values()) {
       field.handleSubmit();
-      this.notify({
+      this.emitFieldEvent({
         type: "field:submit",
         field: field.name,
       });
@@ -231,7 +250,7 @@ export class Runtime<
 
     if (!validation.success) {
       this.options.onInvalid?.(this.errors, values, event);
-      this.notify({
+      this.emitFormEvent({
         type: "form:invalid",
         errors: this.errors,
         values,
@@ -242,7 +261,7 @@ export class Runtime<
 
     this.submitting = true;
 
-    this.notify({
+    this.emitFormEvent({
       type: "form:submit",
       values: validation.values,
     });
@@ -264,10 +283,11 @@ export class Runtime<
     }
 
     this.validationController?.abort();
-    this.validationController = new AbortController();
+    const controller = new AbortController();
+    this.validationController = controller;
     this.validating = true;
 
-    this.notify({
+    this.emitValidationEvent({
       type: "validation:start",
       values,
     });
@@ -280,13 +300,16 @@ export class Runtime<
 
     const result = await this.pipeline.validate(values, {
       form: this.form,
-      signal: this.validationController.signal,
+      signal: controller.signal,
       fields: this.getValidationFields(),
     });
 
-    if (!this.validationController.signal.aborted) {
+    if (!controller.signal.aborted) {
       this.applyValidationResult(result, values);
-      this.validating = false;
+
+      if (this.validationController === controller) {
+        this.validating = false;
+      }
     }
 
     return result;
@@ -296,51 +319,120 @@ export class Runtime<
 
     if (!element?.name || !this.form) return;
 
-    this.ensureField(element);
-
-    const values = this.serialize();
-    const value = values[element.name];
-
-    const node = this.registry.get(element.name);
-    // lifecycle: input/change -> update value once
     if (event.type === "input") {
-      node?.handleInput(value);
-    } else if (event.type === "change") {
-      node?.handleChange(value);
-    } else {
-      node?.updateValue(value);
-    }
-
-    if (!node) {
+      this.processInputFlow(element);
       return;
     }
+
+    if (event.type === "change") {
+      this.processChangeFlow(element);
+      return;
+    }
+
+    this.processUpdateFlow(element);
+  };
+
+  private processInputFlow(element: NativeFormElement): void {
+    const snapshot = this.prepareFieldFlow(element);
+
+    if (!snapshot) {
+      return;
+    }
+
+    const { node, values, value } = snapshot;
+    node.handleInput(value);
 
     void this.runFieldValidation(node, values).then(() => {
       this.options.onInvalid?.(this.errors, values);
     });
 
-    this.notify({
-      type:
-        event.type === "input"
-          ? "field:input"
-          : event.type === "change"
-            ? "field:change"
-            : "field:update",
+    this.emitFieldEvent({
+      type: "field:input",
       field: element.name,
       value,
       values,
     });
 
     // Normalized generic update signal for any value change source.
-    if (event.type === "input" || event.type === "change") {
-      this.notify({
-        type: "field:update",
-        field: element.name,
-        value,
-        values,
-      });
+    this.emitFieldEvent({
+      type: "field:update",
+      field: element.name,
+      value,
+      values,
+    });
+  }
+
+  private processChangeFlow(element: NativeFormElement): void {
+    const snapshot = this.prepareFieldFlow(element);
+
+    if (!snapshot) {
+      return;
     }
-  };
+
+    const { node, values, value } = snapshot;
+    node.handleChange(value);
+
+    void this.runFieldValidation(node, values).then(() => {
+      this.options.onInvalid?.(this.errors, values);
+    });
+
+    this.emitFieldEvent({
+      type: "field:change",
+      field: element.name,
+      value,
+      values,
+    });
+
+    // Normalized generic update signal for any value change source.
+    this.emitFieldEvent({
+      type: "field:update",
+      field: element.name,
+      value,
+      values,
+    });
+  }
+
+  private processUpdateFlow(element: NativeFormElement): void {
+    const snapshot = this.prepareFieldFlow(element);
+
+    if (!snapshot) {
+      return;
+    }
+
+    const { node, values, value } = snapshot;
+    node.updateValue(value);
+
+    void this.runFieldValidation(node, values).then(() => {
+      this.options.onInvalid?.(this.errors, values);
+    });
+
+    this.emitFieldEvent({
+      type: "field:update",
+      field: element.name,
+      value,
+      values,
+    });
+  }
+
+  private prepareFieldFlow(element: NativeFormElement):
+    | {
+        node: FieldNode;
+        values: NativeFormFlatValues;
+        value: NativeFormValue | undefined;
+      }
+    | undefined {
+    this.ensureField(element);
+
+    const values = this.serialize();
+    const value = values[element.name];
+    const node = this.registry.get(element.name);
+
+    if (!node) {
+      return undefined;
+    }
+
+    return { node, values, value };
+  }
 
   private handleFieldBlur = (event: Event) => {
     const element = toNativeFormElement(event.target);
@@ -355,7 +447,7 @@ export class Runtime<
     const node = this.registry.get(element.name);
     node?.handleBlur();
 
-    this.notify({
+    this.emitFieldEvent({
       type: "field:blur",
       field: element.name,
       value,
@@ -372,10 +464,11 @@ export class Runtime<
     }
 
     this.validationController?.abort();
-    this.validationController = new AbortController();
+    const controller = new AbortController();
+    this.validationController = controller;
     this.validating = true;
 
-    this.notify({
+    this.emitValidationEvent({
       type: "validation:start",
       values,
     });
@@ -388,7 +481,7 @@ export class Runtime<
 
     const context = {
       form: this.form,
-      signal: this.validationController.signal,
+      signal: controller.signal,
       fields: this.getValidationFields(),
     };
     const activeFieldMeta = this.toValidationField(field);
@@ -399,9 +492,12 @@ export class Runtime<
       ? await this.pipeline.validateField(activeFieldMeta, values, context)
       : await this.pipeline.validate(values, context);
 
-    if (!this.validationController.signal.aborted) {
+    if (!controller.signal.aborted) {
       this.applyValidationResult(result, values);
-      this.validating = false;
+
+      if (this.validationController === controller) {
+        this.validating = false;
+      }
     }
 
     return result;
@@ -413,24 +509,28 @@ export class Runtime<
 
       const values = this.serialize();
 
-      for (const field of this.registry.values()) {
-        field.handleReset(values[field.name]);
-        this.notify({
-          type: "field:reset",
-          field: field.name,
-          value: values[field.name],
-          values,
-        });
-      }
-      this.errors = {};
-      this.applyNativeErrors();
-
-      this.notify({
-        type: "form:reset",
-        values,
-      });
+      this.processResetFlow(values);
     });
   };
+
+  private processResetFlow(values: NativeFormFlatValues): void {
+    for (const field of this.registry.values()) {
+      field.handleReset(values[field.name]);
+      this.emitFieldEvent({
+        type: "field:reset",
+        field: field.name,
+        value: values[field.name],
+        values,
+      });
+    }
+    this.errors = {};
+    this.applyNativeErrors();
+
+    this.emitFormEvent({
+      type: "form:reset",
+      values,
+    });
+  }
 
   getFieldState(name: string) {
     return this.registry.get(name)?.getState();
@@ -540,7 +640,7 @@ export class Runtime<
     }
     this.applyNativeErrors();
 
-    this.notify({
+    this.emitValidationEvent({
       type: "validation:end",
       errors: this.errors,
       values,

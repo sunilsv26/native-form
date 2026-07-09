@@ -3,8 +3,13 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Runtime } from "../src/Runtime";
-import { StandardSchemaV1, Validator } from "../src/Validation";
+import {
+  StandardSchemaV1,
+  ValidationResult,
+  Validator,
+} from "../src/Validation";
 import { ValidationPipeline } from "../src/ValidationPipeline";
+import { NativeFormValues } from "../src/types";
 
 describe("Runtime", () => {
   it("discovers and serializes native form controls", () => {
@@ -69,6 +74,20 @@ describe("Runtime", () => {
     expect(runtime.getFieldState("tags")).toMatchObject({
       value: ["a", "c"],
       dirty: true,
+    });
+  });
+
+  it("respects native checkbox serialization semantics", () => {
+    const form = createForm(`
+      <input type="checkbox" name="terms" value="accepted" checked />
+      <input type="checkbox" name="newsletter" value="yes" />
+    `);
+    const runtime = new Runtime();
+
+    runtime.mount(form);
+
+    expect(runtime.serialize()).toEqual({
+      terms: "accepted",
     });
   });
 
@@ -1157,6 +1176,76 @@ describe("Runtime", () => {
     await validatePromise;
 
     expect(runtime.getFormState().validating).toBe(false);
+  });
+
+  it("keeps latest field value state during rapid typing", async () => {
+    const form = createForm('<input name="email" value="" />');
+    const input = form.elements.namedItem("email") as HTMLInputElement;
+    const runtime = new Runtime();
+
+    runtime.mount(form);
+
+    input.value = "a";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.value = "ab";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.value = "abc";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+
+    expect(runtime.serialize()).toEqual({ email: "abc" });
+    expect(runtime.getFieldState("email")).toMatchObject({
+      value: "abc",
+      dirty: true,
+    });
+  });
+
+  it("keeps latest input validation result when earlier validation resolves late", async () => {
+    const form = createForm('<input name="email" value="" />');
+    const input = form.elements.namedItem("email") as HTMLInputElement;
+    const pending: Array<{
+      resolve: (result: ValidationResult<NativeFormValues>) => void;
+      signal: AbortSignal;
+    }> = [];
+    const validator: Validator = {
+      validate: vi.fn(
+        (_values, context) =>
+          new Promise<ValidationResult<NativeFormValues>>((resolve) => {
+            pending.push({ resolve, signal: context.signal });
+          }),
+      ),
+    };
+    const runtime = new Runtime({ validator });
+
+    runtime.mount(form);
+
+    input.value = "first";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+
+    input.value = "second@example.com";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+
+    expect(pending.length).toBe(2);
+    expect(pending[0].signal.aborted).toBe(true);
+    expect(pending[1].signal.aborted).toBe(false);
+
+    // Resolve latest validation first as success.
+    pending[1].resolve({
+      success: true,
+      values: { email: "second@example.com" },
+    });
+    await Promise.resolve();
+
+    expect(runtime.getFormState().errors).toEqual({});
+
+    // Resolve stale validation after latest completion.
+    pending[0].resolve({
+      success: false,
+      issues: [{ name: "email", message: "Stale error" }],
+    });
+    await Promise.resolve();
+
+    expect(runtime.getFormState().errors).toEqual({});
   });
 });
 

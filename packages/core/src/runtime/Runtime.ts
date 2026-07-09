@@ -220,8 +220,10 @@ export class Runtime<
     return this.processSubmitFlow(event);
   }
 
-  validate() {
-    return this.runValidation(this.serialize());
+  async validate() {
+    const validation = await this.runValidation(this.serialize());
+
+    return validation.result;
   }
 
   private handleSubmit = (event: SubmitEvent) => {
@@ -247,8 +249,15 @@ export class Runtime<
     }
 
     const validation = await this.runValidation(values);
+    const isStaleValidation =
+      this.validationController !== undefined &&
+      validation.signal !== this.validationController.signal;
 
-    if (!validation.success) {
+    if (validation.aborted || isStaleValidation) {
+      return validation.result;
+    }
+
+    if (!validation.result.success) {
       this.options.onInvalid?.(this.errors, values, event);
       this.emitFormEvent({
         type: "form:invalid",
@@ -256,28 +265,30 @@ export class Runtime<
         values,
       });
 
-      return validation;
+      return validation.result;
     }
 
     this.submitting = true;
 
     this.emitFormEvent({
       type: "form:submit",
-      values: validation.values,
+      values: validation.result.values,
     });
 
     try {
-      await this.options.onSubmit?.(validation.values, event);
+      await this.options.onSubmit?.(validation.result.values, event);
     } finally {
       this.submitting = false;
     }
 
-    return validation;
+    return validation.result;
   }
 
-  private async runValidation(
-    values: NativeFormFlatValues,
-  ): Promise<ValidationResult<TValues>> {
+  private async runValidation(values: NativeFormFlatValues): Promise<{
+    result: ValidationResult<TValues>;
+    signal: AbortSignal;
+    aborted: boolean;
+  }> {
     if (!this.form) {
       throw new Error("Runtime is not mounted.");
     }
@@ -312,7 +323,11 @@ export class Runtime<
       }
     }
 
-    return result;
+    return {
+      result,
+      signal: controller.signal,
+      aborted: controller.signal.aborted,
+    };
   }
   private handleFieldUpdate = (event: Event) => {
     const element = toNativeFormElement(event.target);
@@ -342,7 +357,19 @@ export class Runtime<
     const { node, values, value } = snapshot;
     node.handleInput(value);
 
-    void this.runFieldValidation(node, values).then(() => {
+    void this.runFieldValidation(node, values).then((validation) => {
+      const isStaleValidation =
+        this.validationController !== undefined &&
+        validation.signal !== this.validationController.signal;
+
+      if (
+        validation.aborted ||
+        isStaleValidation ||
+        validation.result.success
+      ) {
+        return;
+      }
+
       this.options.onInvalid?.(this.errors, values);
     });
 
@@ -372,7 +399,19 @@ export class Runtime<
     const { node, values, value } = snapshot;
     node.handleChange(value);
 
-    void this.runFieldValidation(node, values).then(() => {
+    void this.runFieldValidation(node, values).then((validation) => {
+      const isStaleValidation =
+        this.validationController !== undefined &&
+        validation.signal !== this.validationController.signal;
+
+      if (
+        validation.aborted ||
+        isStaleValidation ||
+        validation.result.success
+      ) {
+        return;
+      }
+
       this.options.onInvalid?.(this.errors, values);
     });
 
@@ -402,7 +441,19 @@ export class Runtime<
     const { node, values, value } = snapshot;
     node.updateValue(value);
 
-    void this.runFieldValidation(node, values).then(() => {
+    void this.runFieldValidation(node, values).then((validation) => {
+      const isStaleValidation =
+        this.validationController !== undefined &&
+        validation.signal !== this.validationController.signal;
+
+      if (
+        validation.aborted ||
+        isStaleValidation ||
+        validation.result.success
+      ) {
+        return;
+      }
+
       this.options.onInvalid?.(this.errors, values);
     });
 
@@ -458,7 +509,11 @@ export class Runtime<
   private async runFieldValidation(
     field: FieldNode,
     values: NativeFormFlatValues,
-  ): Promise<ValidationResult<TValues>> {
+  ): Promise<{
+    result: ValidationResult<TValues>;
+    signal: AbortSignal;
+    aborted: boolean;
+  }> {
     if (!this.form) {
       throw new Error("Runtime is not mounted.");
     }
@@ -500,7 +555,11 @@ export class Runtime<
       }
     }
 
-    return result;
+    return {
+      result,
+      signal: controller.signal,
+      aborted: controller.signal.aborted,
+    };
   }
 
   private handleReset = () => {

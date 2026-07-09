@@ -1318,6 +1318,74 @@ describe("Runtime", () => {
     );
     expect(events).toContain("form:invalid");
   });
+
+  it("ignores stale submit validation completion and only fires callbacks for active submit", async () => {
+    const form = createForm('<input name="email" value="" />');
+    const input = form.elements.namedItem("email") as HTMLInputElement;
+    const onInvalid = vi.fn();
+    const onSubmit = vi.fn();
+    const pending: Array<{
+      resolve: (result: ValidationResult<NativeFormValues>) => void;
+      signal: AbortSignal;
+    }> = [];
+    const validator: Validator = {
+      validate: vi.fn(
+        (_values, context) =>
+          new Promise<ValidationResult<NativeFormValues>>((resolve) => {
+            pending.push({ resolve, signal: context.signal });
+          }),
+      ),
+    };
+    const runtime = new Runtime({ validator, onInvalid, onSubmit });
+
+    runtime.mount(form);
+
+    input.value = "first";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+
+    const firstSubmit = runtime.submit();
+    const secondSubmit = runtime.submit();
+
+    expect(pending.length).toBe(3);
+    expect(pending[0].signal.aborted).toBe(true);
+    expect(pending[1].signal.aborted).toBe(true);
+    expect(pending[2].signal.aborted).toBe(false);
+
+    pending[1].resolve({
+      success: true,
+      values: { email: "stale-success" },
+    });
+    await Promise.resolve();
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(onInvalid).not.toHaveBeenCalled();
+
+    pending[2].resolve({
+      success: false,
+      issues: [{ name: "email", message: "active submit error" }],
+    });
+
+    await expect(secondSubmit).resolves.toEqual({
+      success: false,
+      issues: [{ name: "email", message: "active submit error" }],
+    });
+
+    pending[0].resolve({
+      success: false,
+      issues: [{ name: "email", message: "older stale error" }],
+    });
+
+    await expect(firstSubmit).resolves.toEqual({
+      success: true,
+      values: { email: "stale-success" },
+    });
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(onInvalid).toHaveBeenCalledTimes(1);
+    expect(runtime.getFormState().errors).toEqual({
+      email: "active submit error",
+    });
+  });
 });
 
 function createForm(markup: string): HTMLFormElement {

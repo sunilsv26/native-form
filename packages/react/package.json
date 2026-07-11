@@ -16,7 +16,9 @@
     "vitest": "^3.2.4",
     "@native-form/adapter-contracts": "workspace:*",
     "zod": "^4.4.3",
-    "@native-form/zod": "workspace:*"
+    "@native-form/zod": "workspace:*",
+    "yup": "^1.0.2",
+    "@native-form/yup": "workspace:*"
   },
   "peerDependencies": {
     "react": "^19.0.0",

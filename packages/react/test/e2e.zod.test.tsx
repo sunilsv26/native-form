@@ -14,19 +14,30 @@ describe("Form end-to-end with zod schema", () => {
 
     const view = await renderReact(
       <Form schema={zodResolver(schema)} onSubmit={onSubmit}>
-        <input name="user.email" defaultValue="ok@example.com" />
+        <input name="user.email" />
         <button type="submit">Submit</button>
       </Form>,
     );
 
     const form = view.container.querySelector("form");
+    const input = view.container.querySelector(
+      'input[name="user.email"]',
+    ) as HTMLInputElement | null;
     expect(form).not.toBeNull();
+    expect(input).not.toBeNull();
 
     await import("react").then(({ act }) =>
       act(async () => {
+        // simulate typing
+        if (input) {
+          input.value = "ok@example.com";
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+
         form?.dispatchEvent(
           new Event("submit", { bubbles: true, cancelable: true }),
         );
+
         await Promise.resolve();
       }),
     );
@@ -53,16 +64,25 @@ describe("Form end-to-end with zod schema", () => {
         onSubmit={onSubmit}
         onInvalid={onInvalid}
       >
-        <input name="user.email" defaultValue="not-an-email" />
+        <input name="user.email" />
         <button type="submit">Submit</button>
       </Form>,
     );
 
     const form = view.container.querySelector("form");
+    const input = view.container.querySelector(
+      'input[name="user.email"]',
+    ) as HTMLInputElement | null;
     expect(form).not.toBeNull();
+    expect(input).not.toBeNull();
 
     await import("react").then(({ act }) =>
       act(async () => {
+        if (input) {
+          input.value = "not-an-email";
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+
         form?.dispatchEvent(
           new Event("submit", { bubbles: true, cancelable: true }),
         );

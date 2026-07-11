@@ -159,5 +159,42 @@ export function adapterContractSuite(label: string, fixtures: AdapterFixtures) {
 
       expect(res).toEqual({ success: true, values: { tuple: ["first", "2"] } });
     });
+
+    it("handles nested discriminated unions and branch-specific requirements", async () => {
+      const r = await fixtures.discriminatedResolver.validate(
+        { "entry.type": "x", "entry.x.value": "ok" },
+        {} as never,
+      );
+
+      expect(r.success).toBe(true);
+    });
+
+    it("handles nullable+union mixes (string | null | object)", async () => {
+      const r1 = await fixtures.unionResolver.validate(
+        { item: null },
+        {} as never,
+      );
+      expect(r1.success).toBe(true);
+
+      const r2 = await fixtures.unionResolver.validate(
+        { "item.email": "u@e.com" },
+        {} as never,
+      );
+      expect(r2.success).toBe(true);
+    });
+
+    it("enforces stricter tuple element types when provided", async () => {
+      const ok = await fixtures.tupleResolver.validate(
+        { "tuple.0": "ok", "tuple.1": "yes" },
+        {} as never,
+      );
+      expect(ok.success).toBe(true);
+
+      const bad = await fixtures.tupleResolver.validate(
+        { "tuple.0": "ok" },
+        {} as never,
+      );
+      expect(bad.success).toBe(false);
+    });
   });
 }

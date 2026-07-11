@@ -94,9 +94,9 @@ export function adapterContractSuite(label: string, fixtures: AdapterFixtures) {
     it("accepts missing optional fields as valid", async () => {
       const result = await fixtures.optionalResolver.validate({}, {} as never);
 
-      // Accept any successful validation result — optional fields may be omitted
-      // or represented as empty objects depending on schema implementation.
-      expect(result.success).toBe(true);
+      // Require deterministic parity: optional fields should be omitted
+      // from the resulting values (empty object expected).
+      expect(result).toEqual({ success: true, values: {} });
     });
 
     it("supports union types: string or nested object", async () => {

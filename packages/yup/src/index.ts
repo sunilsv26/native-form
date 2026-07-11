@@ -11,9 +11,12 @@ export function yupResolver<TSchema extends AnySchema>(
           abortEarly: false,
         });
 
+        const normalized = normalizeValues(result);
+
         return {
           success: true,
-          values: result as unknown & NativeFormValues,
+          values: (normalized === undefined ? {} : normalized) as unknown &
+            NativeFormValues,
         };
       } catch (err) {
         const error = err as ValidationError;
@@ -127,4 +130,25 @@ function isContainer(
   value: unknown,
 ): value is Record<string, unknown> | unknown[] {
   return isObjectRecord(value) || Array.isArray(value);
+}
+
+function normalizeValues(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(normalizeValues);
+  }
+
+  if (isObjectRecord(value)) {
+    const out: Record<string, unknown> = {};
+
+    for (const [k, v] of Object.entries(value)) {
+      const nv = normalizeValues(v);
+      if (nv !== undefined) {
+        out[k] = nv;
+      }
+    }
+
+    return Object.keys(out).length === 0 ? undefined : out;
+  }
+
+  return value;
 }

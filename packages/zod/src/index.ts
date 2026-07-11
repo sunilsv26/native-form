@@ -18,12 +18,37 @@ export function zodResolver<TSchema extends z.ZodTypeAny>(
         };
       }
 
+      const normalized = normalizeValues(result.data);
+
       return {
         success: true,
-        values: result.data as z.output<TSchema> & NativeFormValues,
+        values: (normalized === undefined
+          ? {}
+          : normalized) as z.output<TSchema> & NativeFormValues,
       };
     },
   };
+}
+
+function normalizeValues(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(normalizeValues);
+  }
+
+  if (isObjectRecord(value)) {
+    const out: Record<string, unknown> = {};
+
+    for (const [k, v] of Object.entries(value)) {
+      const nv = normalizeValues(v);
+      if (nv !== undefined) {
+        out[k] = nv;
+      }
+    }
+
+    return Object.keys(out).length === 0 ? undefined : out;
+  }
+
+  return value;
 }
 
 function toNestedValues(values: NativeFormValues): Record<string, unknown> {

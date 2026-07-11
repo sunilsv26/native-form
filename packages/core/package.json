@@ -12,6 +12,7 @@
   "devDependencies": {
     "typescript": "^5.9.2",
     "vitest": "^3.2.4",
-    "jsdom": "^26.1.0"
+    "jsdom": "^26.1.0",
+    "@native-form/adapter-contracts": "workspace:*"
   }
 }

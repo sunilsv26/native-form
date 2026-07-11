@@ -24,8 +24,27 @@ const badArraySchema = z.object({
   ),
 });
 
+const nestedArraySchema = z.object({
+  groups: z.array(z.array(z.object({ email: z.string().email() }))),
+});
+
+const optionalSchema = z.object({
+  maybe: z
+    .object({
+      nickname: z.string().optional(),
+    })
+    .optional(),
+});
+
+const unionSchema = z.object({
+  item: z.union([z.string(), z.object({ email: z.string().email() })]),
+});
+
 adapterContractSuite("zod", {
   goodNestedResolver: zodResolver(goodNestedSchema),
   goodArrayResolver: zodResolver(goodArraySchema),
   badArrayResolver: zodResolver(badArraySchema),
+  nestedArrayResolver: zodResolver(nestedArraySchema),
+  optionalResolver: zodResolver(optionalSchema),
+  unionResolver: zodResolver(unionSchema),
 });

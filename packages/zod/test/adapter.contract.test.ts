@@ -40,6 +40,31 @@ const unionSchema = z.object({
   item: z.union([z.string(), z.object({ email: z.string().email() })]),
 });
 
+const nullableSchema = z.object({
+  maybe: z.string().nullable().optional(),
+});
+
+const discriminatedSchema = z.object({
+  entry: z
+    .object({
+      type: z.union([z.literal("a"), z.literal("b")]),
+    })
+    .catchall(z.any())
+    .extend({
+      type: z.union([z.literal("a"), z.literal("b")]),
+    }),
+});
+
+// Better: discriminated union for entry
+const discriminatedUnionSchema = z.object({
+  entry: z.discriminatedUnion("type", [
+    z.object({ type: z.literal("a"), a: z.string() }),
+    z.object({ type: z.literal("b"), b: z.string() }),
+  ]),
+});
+
+const tupleSchema = z.object({ tuple: z.tuple([z.string(), z.string()]) });
+
 adapterContractSuite("zod", {
   goodNestedResolver: zodResolver(goodNestedSchema),
   goodArrayResolver: zodResolver(goodArraySchema),
@@ -47,4 +72,7 @@ adapterContractSuite("zod", {
   nestedArrayResolver: zodResolver(nestedArraySchema),
   optionalResolver: zodResolver(optionalSchema),
   unionResolver: zodResolver(unionSchema),
+  nullableResolver: zodResolver(nullableSchema),
+  discriminatedResolver: zodResolver(discriminatedUnionSchema),
+  tupleResolver: zodResolver(tupleSchema),
 });

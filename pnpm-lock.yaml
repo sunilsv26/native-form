@@ -81,6 +81,9 @@ importers:
         specifier: ^19.0.0
         version: 19.2.7(react@19.2.7)
     devDependencies:
+      '@native-form/adapter-contracts':
+        specifier: workspace:*
+        version: link:../adapter-contracts
       jsdom:
         specifier: ^26.1.0
         version: 26.1.0

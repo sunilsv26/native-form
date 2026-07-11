@@ -45,6 +45,30 @@ const unionSchema = yup.object({
   }),
 });
 
+const nullableSchema = yup.object({
+  maybe: yup.string().nullable().notRequired(),
+});
+
+const discriminatedUnionSchema = yup.object({
+  entry: yup.lazy((val) => {
+    if (val && val.type === "a") {
+      return yup.object({
+        type: yup.mixed().oneOf(["a"]).required(),
+        a: yup.string().required(),
+      });
+    }
+
+    return yup.object({
+      type: yup.mixed().oneOf(["b"]).required(),
+      b: yup.string().required(),
+    });
+  }),
+});
+
+const tupleSchema = yup.object({
+  tuple: yup.array().of(yup.string()).length(2).required(),
+});
+
 adapterContractSuite("yup", {
   goodNestedResolver: yupResolver(goodNestedSchema as any),
   goodArrayResolver: yupResolver(goodArraySchema as any),
@@ -52,4 +76,7 @@ adapterContractSuite("yup", {
   nestedArrayResolver: yupResolver(nestedArraySchema as any),
   optionalResolver: yupResolver(optionalSchema as any),
   unionResolver: yupResolver(unionSchema as any),
+  nullableResolver: yupResolver(nullableSchema as any),
+  discriminatedResolver: yupResolver(discriminatedUnionSchema as any),
+  tupleResolver: yupResolver(tupleSchema as any),
 });

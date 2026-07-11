@@ -13,7 +13,8 @@
   },
   "devDependencies": {
     "jsdom": "^26.1.0",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "@native-form/adapter-contracts": "workspace:*"
   },
   "peerDependencies": {
     "react": "^19.0.0",

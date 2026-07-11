@@ -8,6 +8,9 @@ export type AdapterFixtures = {
   nestedArrayResolver: Validator;
   optionalResolver: Validator;
   unionResolver: Validator;
+  nullableResolver: Validator;
+  discriminatedResolver: Validator;
+  tupleResolver: Validator;
 };
 
 export function adapterContractSuite(label: string, fixtures: AdapterFixtures) {
@@ -118,6 +121,43 @@ export function adapterContractSuite(label: string, fixtures: AdapterFixtures) {
         success: true,
         values: { item: { email: "union@example.com" } },
       });
+    });
+
+    it("accepts null and missing for nullable/optional fields", async () => {
+      const r1 = await fixtures.nullableResolver.validate({}, {} as never);
+      expect(r1.success).toBe(true);
+
+      const r2 = await fixtures.nullableResolver.validate(
+        { maybe: null },
+        {} as never,
+      );
+      expect(r2.success).toBe(true);
+    });
+
+    it("handles discriminated unions via a type field", async () => {
+      const r1 = await fixtures.discriminatedResolver.validate(
+        { "entry.type": "a", "entry.a": "value-a" },
+        {} as never,
+      );
+      expect(r1).toEqual({
+        success: true,
+        values: { entry: { type: "a", a: "value-a" } },
+      });
+
+      const r2 = await fixtures.discriminatedResolver.validate(
+        { "entry.type": "b", "entry.b": "42" },
+        {} as never,
+      );
+      expect(r2.success).toBe(true);
+    });
+
+    it("supports tuple shapes (fixed-length arrays)", async () => {
+      const res = await fixtures.tupleResolver.validate(
+        { "tuple.0": "first", "tuple.1": "2" },
+        {} as never,
+      );
+
+      expect(res).toEqual({ success: true, values: { tuple: ["first", "2"] } });
     });
   });
 }

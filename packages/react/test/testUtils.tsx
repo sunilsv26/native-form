@@ -43,3 +43,25 @@ export async function renderReact(
     },
   };
 }
+
+export async function typeInto(
+  input: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
+  text: string,
+) {
+  await act(async () => {
+    input.focus();
+
+    // simulate typing character by character
+    for (let i = 0; i < text.length; i++) {
+      const next = text.slice(0, i + 1);
+      input.value = next as any;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      await Promise.resolve();
+    }
+
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    input.blur();
+
+    await Promise.resolve();
+  });
+}

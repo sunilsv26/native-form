@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from "vitest";
 import { z } from "zod";
 
 import { Form } from "../src";
-import { renderReact } from "./testUtils";
+import { renderReact, typeInto } from "./testUtils";
 import { zodResolver } from "@native-form/zod";
 
 describe("Form end-to-end with zod schema", () => {
@@ -30,8 +30,7 @@ describe("Form end-to-end with zod schema", () => {
       act(async () => {
         // simulate typing
         if (input) {
-          input.value = "ok@example.com";
-          input.dispatchEvent(new Event("input", { bubbles: true }));
+          await typeInto(input, "ok@example.com");
         }
 
         form?.dispatchEvent(
@@ -79,8 +78,7 @@ describe("Form end-to-end with zod schema", () => {
     await import("react").then(({ act }) =>
       act(async () => {
         if (input) {
-          input.value = "not-an-email";
-          input.dispatchEvent(new Event("input", { bubbles: true }));
+          await typeInto(input, "not-an-email");
         }
 
         form?.dispatchEvent(

@@ -55,6 +55,8 @@ importers:
         specifier: ^5.0.0
         version: 5.4.21(@types/node@24.13.2)
 
+  packages/adapter-contracts: {}
+
   packages/core:
     devDependencies:
       jsdom:
@@ -95,6 +97,9 @@ importers:
         specifier: ^1.2.0
         version: 1.7.1
     devDependencies:
+      '@native-form/adapter-contracts':
+        specifier: workspace:*
+        version: link:../adapter-contracts
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
@@ -111,6 +116,9 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
+      '@native-form/adapter-contracts':
+        specifier: workspace:*
+        version: link:../adapter-contracts
       typescript:
         specifier: ^5.9.2
         version: 5.9.3

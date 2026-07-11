@@ -22,10 +22,16 @@ export function yupResolver<TSchema extends AnySchema>(
           error.inner && error.inner.length > 0 ? error.inner : [error]
         )
           .filter(Boolean)
-          .map((issue) => ({
-            name: String(issue.path || ""),
-            message: String(issue.message || "validation failed"),
-          }));
+          .map((issue) => {
+            const rawPath = String(issue.path || "");
+            // Normalize bracket notation (users[0].email) to dotted numeric segments (users.0.email)
+            const name = rawPath.replace(/\[(\d+)\]/g, ".$1");
+
+            return {
+              name,
+              message: String(issue.message || "validation failed"),
+            };
+          });
 
         return {
           success: false,

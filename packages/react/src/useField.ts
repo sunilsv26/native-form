@@ -8,6 +8,7 @@ import {
 
 import { UseFormResult } from "./useForm";
 
+/** @public */
 export interface UseFieldOptions<
   TValues extends NativeFormValues = NativeFormValues,
 > {
@@ -15,6 +16,7 @@ export interface UseFieldOptions<
   name: string;
 }
 
+/** @public */
 export interface UseFieldResult extends FieldState {
   invalid: boolean;
 }
@@ -53,6 +55,7 @@ function toFieldValue(value: unknown): NativeFormValue | undefined {
   return undefined;
 }
 
+/** @public */
 export function useField<TValues extends NativeFormValues = NativeFormValues>({
   form,
   name,

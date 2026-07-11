@@ -1,5 +1,7 @@
+/** @public */
 export type FieldPathSegment = string | number;
 
+/** @public */
 export function formPath(...segments: FieldPathSegment[]): string {
   return segments
     .map((segment) => String(segment).trim())
@@ -7,6 +9,7 @@ export function formPath(...segments: FieldPathSegment[]): string {
     .join(".");
 }
 
+/** @public */
 export function arrayItemPath(
   arrayName: string,
   index: number,

@@ -1,6 +1,7 @@
 import { NativeFormValues, Validator } from "@native-form/core";
 import type { AnySchema, ValidationError } from "yup";
 
+/** @public */
 export function yupResolver<TSchema extends AnySchema>(
   schema: TSchema,
 ): Validator<unknown & NativeFormValues> {

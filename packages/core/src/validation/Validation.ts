@@ -1,15 +1,18 @@
 import { NativeFormFlatValues, NativeFormValues } from "../shared/types";
 
+/** @public */
 export interface ValidationIssue {
   name: string;
   message: string;
 }
 
+/** @public */
 export interface ValidationContext {
   form: HTMLFormElement;
   signal: AbortSignal;
 }
 
+/** @public */
 export type ValidationResult<
   TValues extends NativeFormValues = NativeFormValues,
 > =
@@ -24,6 +27,7 @@ export type ValidationResult<
       issues: ValidationIssue[];
     };
 
+/** @public */
 export interface Validator<
   TValues extends NativeFormValues = NativeFormValues,
 > {
@@ -33,11 +37,13 @@ export interface Validator<
   ): ValidationResult<TValues> | Promise<ValidationResult<TValues>>;
 }
 
+/** @public */
 export interface StandardSchemaIssue {
   message: string;
   path?: readonly (PropertyKey | { key: PropertyKey })[];
 }
 
+/** @public */
 export type StandardSchemaResult<TValues> =
   | {
       value: TValues;
@@ -48,6 +54,7 @@ export type StandardSchemaResult<TValues> =
       issues: readonly StandardSchemaIssue[];
     };
 
+/** @public */
 export interface StandardSchemaV1<
   TValues extends NativeFormValues = NativeFormValues,
 > {
@@ -64,10 +71,12 @@ export interface StandardSchemaV1<
   };
 }
 
+/** @public */
 export type SchemaLike<TValues extends NativeFormValues = NativeFormValues> =
   | Validator<TValues>
   | StandardSchemaV1<TValues>;
 
+/** @public */
 export type InferSchemaOutput<TSchema> =
   TSchema extends StandardSchemaV1<infer TValues>
     ? TValues
@@ -75,6 +84,7 @@ export type InferSchemaOutput<TSchema> =
       ? TValues
       : NativeFormValues;
 
+/** @public */
 export function createValidator<TValues extends NativeFormValues>(
   schema: SchemaLike<TValues>,
 ): Validator<TValues> {

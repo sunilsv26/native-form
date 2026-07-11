@@ -8,15 +8,18 @@ import {
 } from "./Validation";
 import { NativeFormFlatValues, NativeFormValues } from "../shared/types";
 
+/** @public */
 export interface ValidationFieldMeta {
   name: string;
   validationMessage: string;
 }
 
+/** @public */
 export interface ValidationPipelineContext extends ValidationContext {
   fields: ValidationFieldMeta[];
 }
 
+/** @public */
 export interface ValidationPipelineCapabilities {
   /**
    * When true, Runtime will call `validateField` for input/change-triggered
@@ -26,6 +29,7 @@ export interface ValidationPipelineCapabilities {
   supportsFieldScopedValidation: boolean;
 }
 
+/** @public */
 export interface ValidationPipeline<
   TValues extends NativeFormValues = NativeFormValues,
 > {
@@ -71,6 +75,7 @@ export interface ValidationPipeline<
   ): ValidationResult<TValues> | Promise<ValidationResult<TValues>>;
 }
 
+/** @public */
 export interface ValidationPipelineOptions<
   TValues extends NativeFormValues = NativeFormValues,
 > {
@@ -78,6 +83,7 @@ export interface ValidationPipelineOptions<
   validator?: Validator<TValues>;
 }
 
+/** @public */
 export function createValidationPipeline<
   TValues extends NativeFormValues = NativeFormValues,
 >(

@@ -1,5 +1,6 @@
 import { NativeFormValue } from "../shared/types";
 
+/** @public */
 export interface FieldState {
   name: string;
 

@@ -1,19 +1,25 @@
+/** @public */
 export type NativeFormElement =
   | HTMLInputElement
   | HTMLSelectElement
   | HTMLTextAreaElement;
 
+/** @public */
 export type NativeFormValue = FormDataEntryValue | FormDataEntryValue[];
 
+/** @public */
 export type NativeFormFlatValues = Record<string, NativeFormValue>;
 
+/** @public */
 export type NativeFormNestedValue =
   | NativeFormValue
   | { [key: string]: NativeFormNestedValue }
   | NativeFormNestedValue[];
 
+/** @public */
 export type NativeFormValues = Record<string, NativeFormNestedValue>;
 
+/** @public */
 export type RuntimeEventType =
   | "form:mount"
   | "form:unmount"
@@ -31,6 +37,7 @@ export type RuntimeEventType =
   | "field:reset"
   | "field:submit";
 
+/** @public */
 export type FormEvents =
   | {
       type: "form:mount" | "form:unmount";
@@ -45,6 +52,7 @@ export type FormEvents =
       values: NativeFormValues;
     };
 
+/** @public */
 export type ValidationEvents =
   | {
       type: "validation:start";
@@ -56,6 +64,7 @@ export type ValidationEvents =
       values: NativeFormValues;
     };
 
+/** @public */
 export type FieldEvents =
   | {
       type:
@@ -73,6 +82,8 @@ export type FieldEvents =
       field: string;
     };
 
+/** @public */
 export type RuntimeEvent = FieldEvents | ValidationEvents | FormEvents;
 
+/** @public */
 export type RuntimeListener = (event: RuntimeEvent) => void;

@@ -8,6 +8,7 @@ import {
 
 import { useForm } from "./useForm";
 
+/** @public */
 export interface FormProps<
   TSchema extends SchemaLike | undefined = undefined,
   TValues extends NativeFormValues = TSchema extends SchemaLike
@@ -23,6 +24,7 @@ export interface FormProps<
   ) => void;
 }
 
+/** @public */
 export function Form<
   TSchema extends SchemaLike | undefined = undefined,
   TValues extends NativeFormValues = TSchema extends SchemaLike

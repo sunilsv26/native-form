@@ -8,6 +8,7 @@ import {
   SchemaLike,
 } from "@native-form/core";
 
+/** @public */
 export interface UseFormOptions<
   TSchema extends SchemaLike | undefined = undefined,
   TValues extends NativeFormValues = TSchema extends SchemaLike
@@ -23,6 +24,7 @@ export interface UseFormOptions<
   ) => void;
 }
 
+/** @public */
 export interface UseFormResult<
   TValues extends NativeFormValues = NativeFormValues,
 > {
@@ -44,6 +46,7 @@ function createEmptyFormState() {
   };
 }
 
+/** @public */
 export function useForm<
   TSchema extends SchemaLike | undefined = undefined,
   TValues extends NativeFormValues = TSchema extends SchemaLike

@@ -28,6 +28,7 @@ import {
   Validator,
 } from "../validation/Validation";
 
+/** @public */
 export interface RuntimeOptions<
   TValues extends NativeFormValues = NativeFormValues,
 > {
@@ -42,6 +43,7 @@ export interface RuntimeOptions<
   ) => void;
 }
 
+/** @public */
 export interface RuntimeFormState {
   dirty: boolean;
   touched: boolean;
@@ -53,6 +55,7 @@ export interface RuntimeFormState {
   values: NativeFormFlatValues;
 }
 
+/** @public */
 export interface RuntimePublicApi<
   TValues extends NativeFormValues = NativeFormValues,
 > {
@@ -76,6 +79,7 @@ type ValidationRuntimeEvent = Extract<
 >;
 type FormRuntimeEvent = Extract<RuntimeEvent, { type: `form:${string}` }>;
 
+/** @public */
 export class Runtime<
   TValues extends NativeFormValues = NativeFormValues,
 > implements RuntimePublicApi<TValues> {

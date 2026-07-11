@@ -1,6 +1,7 @@
 import { NativeFormValues, Validator } from "@native-form/core";
 import { z } from "zod";
 
+/** @public */
 export function zodResolver<TSchema extends z.ZodTypeAny>(
   schema: TSchema,
 ): Validator<z.output<TSchema> & NativeFormValues> {

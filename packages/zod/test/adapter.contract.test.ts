@@ -36,9 +36,7 @@ const optionalSchema = z.object({
     .optional(),
 });
 
-const unionSchema = z.object({
-  item: z.union([z.string(), z.object({ email: z.string().email() })]),
-});
+// (unionSchema defined later with nullable branch)
 
 const nullableSchema = z.object({
   maybe: z.string().nullable().optional(),
@@ -60,10 +58,19 @@ const discriminatedUnionSchema = z.object({
   entry: z.discriminatedUnion("type", [
     z.object({ type: z.literal("a"), a: z.string() }),
     z.object({ type: z.literal("b"), b: z.string() }),
+    z.object({ type: z.literal("x"), x: z.object({ value: z.string() }) }),
   ]),
 });
 
 const tupleSchema = z.object({ tuple: z.tuple([z.string(), z.string()]) });
+
+const unionSchema = z.object({
+  item: z.union([
+    z.string(),
+    z.null(),
+    z.object({ email: z.string().email() }),
+  ]),
+});
 
 adapterContractSuite("zod", {
   goodNestedResolver: zodResolver(goodNestedSchema),

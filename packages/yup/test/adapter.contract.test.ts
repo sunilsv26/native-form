@@ -40,6 +40,7 @@ const optionalSchema = yup.object({
 
 const unionSchema = yup.object({
   item: yup.lazy((val) => {
+    if (val === null) return yup.mixed().nullable();
     if (typeof val === "string") return yup.string();
     return yup.object({ email: yup.string().email().required() });
   }),
@@ -55,6 +56,13 @@ const discriminatedUnionSchema = yup.object({
       return yup.object({
         type: yup.mixed().oneOf(["a"]).required(),
         a: yup.string().required(),
+      });
+    }
+
+    if (val && val.type === "x") {
+      return yup.object({
+        type: yup.mixed().oneOf(["x"]).required(),
+        x: yup.object({ value: yup.string().required() }).required(),
       });
     }
 

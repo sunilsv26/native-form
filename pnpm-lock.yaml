@@ -90,12 +90,18 @@ importers:
       '@native-form/adapter-contracts':
         specifier: workspace:*
         version: link:../adapter-contracts
+      '@native-form/zod':
+        specifier: workspace:*
+        version: link:../zod
       jsdom:
         specifier: ^26.1.0
         version: 26.1.0
       vitest:
         specifier: ^3.2.4
         version: 3.2.6(@types/node@24.13.2)(jsdom@26.1.0)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
   packages/yup:
     dependencies:

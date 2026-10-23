@@ -1568,6 +1568,59 @@ describe("Runtime", () => {
     expect(input0.validationMessage).toBe("Item 0 required");
     expect(input1.validationMessage).toBe("");
   });
+
+  describe("getFieldValue fast-path optimization", () => {
+    it("returns correct field values for various control types without full form serialization", () => {
+      const form = createForm(`
+        <input name="username" value="johndoe" />
+        <input type="number" name="age" value="28" />
+        <input type="checkbox" name="terms" checked />
+        <input type="checkbox" name="newsletter" />
+        <input type="radio" name="plan" value="free" />
+        <input type="radio" name="plan" value="pro" checked />
+        <select name="role">
+          <option value="admin">Admin</option>
+          <option value="member" selected>Member</option>
+        </select>
+        <select name="tags" multiple>
+          <option value="ts" selected>TS</option>
+          <option value="react" selected>React</option>
+          <option value="vue">Vue</option>
+        </select>
+      `);
+
+      const runtime = new Runtime();
+      runtime.mount(form);
+
+      expect(runtime.getFieldValue("username")).toBe("johndoe");
+      expect(runtime.getFieldValue("age")).toBe(28);
+      expect(runtime.getFieldValue("terms")).toBe(true);
+      expect(runtime.getFieldValue("newsletter")).toBe(false);
+      expect(runtime.getFieldValue("plan")).toBe("pro");
+      expect(runtime.getFieldValue("role")).toBe("member");
+      expect(runtime.getFieldValue("tags")).toEqual(["ts", "react"]);
+      expect(runtime.getFieldValue("nonexistent")).toBeUndefined();
+    });
+
+    it("does not invoke serializer.serialize during getFieldValue", () => {
+      const form = createForm('<input name="email" value="fast@test.com" />');
+      const runtime = new Runtime();
+      runtime.mount(form);
+
+      const serializeSpy = vi.spyOn((runtime as any).serializer, "serialize");
+
+      const value = runtime.getFieldValue("email");
+      expect(value).toBe("fast@test.com");
+      expect(serializeSpy).not.toHaveBeenCalled();
+
+      serializeSpy.mockRestore();
+    });
+
+    it("returns undefined when unmounted", () => {
+      const runtime = new Runtime();
+      expect(runtime.getFieldValue("email")).toBeUndefined();
+    });
+  });
 });
 
 function createForm(markup: string): HTMLFormElement {

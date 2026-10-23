@@ -149,24 +149,29 @@ export function useForm<
         | readonly string[]
         | ((state: RuntimeFormState) => unknown),
     ) => {
+      if (typeof target === "string") {
+        if (runtimeRef.current) {
+          return runtimeRef.current.getFieldValue(target);
+        }
+        return formState.values[target];
+      }
+
+      if (Array.isArray(target)) {
+        const result: Record<string, NativeFormValue | undefined> = {};
+        for (const n of target) {
+          result[n] = runtimeRef.current
+            ? runtimeRef.current.getFieldValue(n)
+            : formState.values[n];
+        }
+        return result;
+      }
+
       const currentState = runtimeRef.current
         ? runtimeRef.current.getFormState()
         : formState;
 
       if (typeof target === "function") {
         return target(currentState);
-      }
-
-      if (typeof target === "string") {
-        return currentState.values[target];
-      }
-
-      if (Array.isArray(target)) {
-        const result: Record<string, NativeFormValue | undefined> = {};
-        for (const n of target) {
-          result[n] = currentState.values[n];
-        }
-        return result;
       }
 
       return currentState.values;

@@ -158,8 +158,41 @@ export function useWatch<
     }
 
     const evaluate = () => {
-      const currentFormState = runtime.getFormState();
-      const next = computeWatchValue(optionsRef.current, currentFormState);
+      const opts = optionsRef.current;
+      let next: unknown;
+
+      if (typeof opts.name === "string") {
+        const val = runtime.getFieldValue(opts.name);
+        if (
+          opts.defaultValue !== undefined &&
+          (val === undefined || val === "")
+        ) {
+          next = opts.defaultValue;
+        } else {
+          next = val;
+        }
+      } else if (Array.isArray(opts.names)) {
+        const result: Record<string, NativeFormValue | undefined> = {};
+        const defaultMap = opts.defaultValue as
+          | Record<string, NativeFormValue | undefined>
+          | undefined;
+
+        for (const n of opts.names) {
+          const val = runtime.getFieldValue(n);
+          if (
+            defaultMap?.[n] !== undefined &&
+            (val === undefined || val === "")
+          ) {
+            result[n] = defaultMap[n];
+          } else {
+            result[n] = val;
+          }
+        }
+        next = result;
+      } else {
+        const currentFormState = runtime.getFormState();
+        next = computeWatchValue(opts, currentFormState);
+      }
 
       if (!shallowEqual(prevRef.current, next)) {
         prevRef.current = next;

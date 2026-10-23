@@ -359,5 +359,32 @@ describe("watch and selector ergonomics (NF-018)", () => {
 
     await view.cleanup();
   });
+
+  it("fast-paths form.watch(name) via runtime.getFieldValue without full state reconstruction", async () => {
+    let formRef: UseFormResult | undefined;
+
+    function TestApp() {
+      const form = useForm({ subscribe: false });
+      formRef = form;
+      return (
+        <form ref={form.formRef}>
+          <input name="fastField" defaultValue="lightning" />
+        </form>
+      );
+    }
+
+    const view = await renderReact(<TestApp />);
+    expect(formRef?.runtime).toBeTruthy();
+
+    const getFieldValueSpy = vi.spyOn(formRef!.runtime!, "getFieldValue");
+    const getFormStateSpy = vi.spyOn(formRef!.runtime!, "getFormState");
+
+    const val = formRef!.watch("fastField");
+    expect(val).toBe("lightning");
+    expect(getFieldValueSpy).toHaveBeenCalledWith("fastField");
+    expect(getFormStateSpy).not.toHaveBeenCalled();
+
+    await view.cleanup();
+  });
 });
 

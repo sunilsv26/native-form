@@ -11,6 +11,7 @@ type RuntimePublicKey =
   | "submit"
   | "subscribe"
   | "unsubscribe"
+  | "getFieldValue"
   | "getFieldState"
   | "getFieldStates"
   | "getFormState";

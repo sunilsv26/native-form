@@ -15,6 +15,7 @@ describe("Runtime public API contract", () => {
     expect(typeof runtime.submit).toBe("function");
     expect(typeof runtime.subscribe).toBe("function");
     expect(typeof runtime.unsubscribe).toBe("function");
+    expect(typeof runtime.getFieldValue).toBe("function");
     expect(typeof runtime.getFieldState).toBe("function");
     expect(typeof runtime.getFieldStates).toBe("function");
     expect(typeof runtime.getFormState).toBe("function");

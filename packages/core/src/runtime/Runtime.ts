@@ -67,6 +67,7 @@ export interface RuntimePublicApi<
   submit(event?: SubmitEvent): Promise<ValidationResult<TValues>>;
   subscribe(listener: RuntimeListener): () => void;
   unsubscribe(listener: RuntimeListener): void;
+  getFieldValue(name: string): NativeFormValue | undefined;
   getFieldState(name: string): FieldState | undefined;
   getFieldStates(): FieldState[];
   getFormState(): RuntimeFormState;
@@ -628,12 +629,74 @@ export class Runtime<
     node.register(this.getFieldValue(element.name));
   }
 
-  private getFieldValue(name: string): NativeFormValue | undefined {
+  getFieldValue(name: string): NativeFormValue | undefined {
     if (!this.form) {
       return undefined;
     }
 
-    return this.serializer.serialize(this.form)[name];
+    let node = this.registry.get(name);
+    if (!node) {
+      const control = this.form.elements.namedItem(name);
+      if (
+        control instanceof HTMLInputElement ||
+        control instanceof HTMLSelectElement ||
+        control instanceof HTMLTextAreaElement
+      ) {
+        this.ensureField(control);
+        node = this.registry.get(name);
+      }
+    }
+
+    if (!node) {
+      return undefined;
+    }
+
+    if (
+      node.element instanceof HTMLInputElement &&
+      node.element.type === "radio"
+    ) {
+      const item = this.form.elements.namedItem(name);
+      if (item) {
+        if (
+          "value" in item &&
+          typeof (item as any).value === "string" &&
+          (item as any).value !== ""
+        ) {
+          return (item as any).value;
+        }
+        if ("length" in item) {
+          for (const el of Array.from(item as any as Iterable<Element>)) {
+            if (el instanceof HTMLInputElement && el.checked) {
+              return el.value;
+            }
+          }
+        }
+      }
+      return node.element.checked ? node.element.value : undefined;
+    }
+
+    if (
+      node.element instanceof HTMLInputElement &&
+      node.element.type === "checkbox"
+    ) {
+      const item = this.form.elements.namedItem(name);
+      if (
+        item &&
+        ("length" in item || item instanceof RadioNodeList) &&
+        (item as any).length > 1
+      ) {
+        const checkedValues: string[] = [];
+        for (const el of Array.from(item as any as Iterable<Element>)) {
+          if (el instanceof HTMLInputElement && el.checked) {
+            checkedValues.push(el.value || "on");
+          }
+        }
+        return checkedValues as unknown as NativeFormValue;
+      }
+      return node.element.checked as unknown as NativeFormValue;
+    }
+
+    return (node.value ?? undefined) as NativeFormValue | undefined;
   }
 
   private getValidationFields(): ValidationFieldMeta[] {

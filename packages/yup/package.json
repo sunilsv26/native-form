@@ -1,9 +1,35 @@
 {
   "name": "@native-form/yup",
-  "version": "0.0.1",
+  "version": "0.5.0-rc.1",
+  "description": "Yup schema validation adapter for Native Form.",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sunilsv26/native-form.git",
+    "directory": "packages/yup"
+  },
+  "keywords": [
+    "yup",
+    "validation",
+    "schema",
+    "native-form"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "vitest run"

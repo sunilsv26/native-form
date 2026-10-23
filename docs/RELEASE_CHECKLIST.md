@@ -26,6 +26,6 @@ Use this checklist before tagging a release.
 
 ## Versioning and Publishing
 
-- [ ] Package versions are updated as needed.
+- [x] Package versions are updated as needed.
 - [x] Changelog/release notes are prepared.
-- [ ] Release tag and publication steps are verified.
+- [x] Release tag and publication steps are verified (pnpm pack tarball validation).

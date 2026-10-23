@@ -1,13 +1,22 @@
-import React, { useMemo } from "react";
+import React, { useId, useMemo, useRef, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { arrayItemPath, formPath } from "@native-form/core";
-import { useField, useForm } from "@native-form/react";
+import {
+  useField,
+  useForm,
+  UseFormResult,
+  useWatch,
+} from "@native-form/react";
 import { zodResolver } from "@native-form/zod";
+import { yupResolver } from "@native-form/yup";
 import { z } from "zod";
+import * as yup from "yup";
 
-const loginSchema = z.object({
+// --- Schemas ---
+
+const zodLoginSchema = z.object({
   user: z.object({
-    email: z.string().email("Enter a valid email"),
+    email: z.string().email("Enter a valid email address"),
     password: z.string().min(8, "Password must be at least 8 characters"),
   }),
   teammates: z.array(
@@ -17,11 +26,33 @@ const loginSchema = z.object({
   ),
 });
 
+const yupLoginSchema = yup.object({
+  user: yup.object({
+    email: yup
+      .string()
+      .email("Enter a valid email address")
+      .required("Email is required"),
+    password: yup
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .required("Password is required"),
+  }),
+  teammates: yup.array().of(
+    yup.object({
+      email: yup
+        .string()
+        .email("Enter a valid teammate email")
+        .required("Teammate email is required"),
+    }),
+  ),
+});
+
 const USER_EMAIL = formPath("user", "email");
 const USER_PASSWORD = formPath("user", "password");
-const TEAMMATE_0_EMAIL = arrayItemPath("teammates", 0, "email");
 
-const FieldStatus = ({
+// --- Components ---
+
+function FieldStatus({
   label,
   touched,
   dirty,
@@ -31,129 +62,430 @@ const FieldStatus = ({
   touched: boolean;
   dirty: boolean;
   error?: string;
-}) => {
+}) {
   return (
     <p
       style={{
-        margin: "6px 0 0",
+        margin: "4px 0 0",
         fontSize: "12px",
-        color: error ? "#b42318" : "#667085",
+        color: error ? "#e11d48" : "#64748b",
       }}
     >
-      {label}: {error ?? "ok"} (touched: {String(touched)}, dirty:{" "}
-      {String(dirty)})
+      {label}: {error ? <strong>{error}</strong> : "ok"} (touched:{" "}
+      {String(touched)}, dirty: {String(dirty)})
     </p>
   );
-};
+}
 
-const App = () => {
-  const schema = useMemo(() => zodResolver(loginSchema), []);
-
-  const form = useForm({
-    schema,
-    onSubmit: (values) => {
-      console.log("SUBMIT:", values);
-      alert("Login successful! Check console for values.");
-    },
-  });
-  const email = useField({ form, name: USER_EMAIL });
-  const password = useField({ form, name: USER_PASSWORD });
-  const teammateEmail = useField({ form, name: TEAMMATE_0_EMAIL });
+function InputField({
+  form,
+  name,
+  label,
+  type = "text",
+  defaultValue = "",
+}: {
+  form: UseFormResult;
+  name: string;
+  label: string;
+  type?: string;
+  defaultValue?: string;
+}) {
+  const field = useField({ form, name });
 
   return (
-    <div style={{ maxWidth: "400px", margin: "0 auto", padding: "20px" }}>
-      <h1>Native Form Example</h1>
+    <div style={{ display: "flex", flexDirection: "column" }}>
+      <label
+        htmlFor={name}
+        style={{ fontSize: "14px", fontWeight: 600, color: "#1e293b" }}
+      >
+        {label}
+      </label>
+      <input
+        id={name}
+        name={name}
+        type={type}
+        defaultValue={defaultValue}
+        style={{
+          width: "100%",
+          padding: "8px 12px",
+          marginTop: "6px",
+          borderRadius: "6px",
+          border: field.invalid ? "1.5px solid #e11d48" : "1px solid #cbd5e1",
+          outline: "none",
+          fontSize: "14px",
+          boxSizing: "border-box",
+        }}
+      />
+      <FieldStatus
+        label={label}
+        touched={field.touched}
+        dirty={field.dirty}
+        error={field.error}
+      />
+    </div>
+  );
+}
+
+function TeammateRow({
+  form,
+  name,
+  index,
+  onRemove,
+}: {
+  form: UseFormResult;
+  name: string;
+  index: number;
+  onRemove: () => void;
+}) {
+  const field = useField({ form, name });
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: "8px",
+        padding: "10px",
+        background: "#f8fafc",
+        borderRadius: "8px",
+        border: "1px solid #e2e8f0",
+      }}
+    >
+      <div style={{ flex: 1 }}>
+        <input
+          name={name}
+          type="email"
+          placeholder={`teammate${index + 1}@company.com`}
+          defaultValue=""
+          style={{
+            width: "100%",
+            padding: "8px 12px",
+            borderRadius: "6px",
+            border: field.invalid ? "1.5px solid #e11d48" : "1px solid #cbd5e1",
+            outline: "none",
+            fontSize: "14px",
+            boxSizing: "border-box",
+          }}
+        />
+        {field.error ? (
+          <p
+            style={{
+              margin: "4px 0 0",
+              fontSize: "12px",
+              color: "#e11d48",
+              fontWeight: 500,
+            }}
+          >
+            {field.error}
+          </p>
+        ) : null}
+      </div>
+      <button
+        type="button"
+        onClick={onRemove}
+        style={{
+          padding: "8px 12px",
+          backgroundColor: "#fee2e2",
+          color: "#991b1b",
+          border: "none",
+          borderRadius: "6px",
+          cursor: "pointer",
+          fontWeight: 600,
+          fontSize: "12px",
+        }}
+      >
+        Remove
+      </button>
+    </div>
+  );
+}
+
+// Live telemetry panel using `useWatch` to demonstrate isolated re-renders
+function LiveTelemetry({ form }: { form: UseFormResult }) {
+  const renderCountRef = useRef(0);
+  renderCountRef.current++;
+
+  const userEmail = useWatch({ form, name: USER_EMAIL });
+  const isValid = useWatch({ form, selector: (s) => s.valid });
+  const isSubmitting = useWatch({ form, selector: (s) => s.submitting });
+  const allValues = useWatch({ form });
+
+  return (
+    <div
+      style={{
+        marginTop: "20px",
+        padding: "14px",
+        background: "#0f172a",
+        color: "#f8fafc",
+        borderRadius: "8px",
+        fontSize: "13px",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "10px",
+          borderBottom: "1px solid #334155",
+          paddingBottom: "8px",
+        }}
+      >
+        <span style={{ fontWeight: 700, color: "#38bdf8" }}>
+          Live Telemetry (useWatch)
+        </span>
+        <span
+          style={{
+            fontSize: "11px",
+            padding: "2px 8px",
+            borderRadius: "4px",
+            backgroundColor: isValid ? "#059669" : "#dc2626",
+            color: "#fff",
+            fontWeight: 600,
+          }}
+        >
+          {isValid ? "VALID" : "INVALID"}
+        </span>
+      </div>
+
+      <p style={{ margin: "4px 0" }}>
+        <strong>Current User:</strong> {String(userEmail || "(not entered)")}
+      </p>
+      <p style={{ margin: "4px 0" }}>
+        <strong>Submitting:</strong> {String(isSubmitting)}
+      </p>
+      <p style={{ margin: "4px 0" }}>
+        <strong>Telemetry Panel Renders:</strong> {renderCountRef.current}
+      </p>
+
+      <div style={{ marginTop: "10px" }}>
+        <span style={{ fontWeight: 600, color: "#94a3b8" }}>
+          Serialized Form Values:
+        </span>
+        <pre
+          style={{
+            margin: "6px 0 0",
+            padding: "8px",
+            background: "#1e293b",
+            borderRadius: "6px",
+            overflowX: "auto",
+            fontSize: "12px",
+            color: "#a5f3fc",
+          }}
+        >
+          {JSON.stringify(allValues, null, 2)}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+// --- Main App ---
+
+export function App() {
+  const [adapterType, setAdapterType] = useState<"zod" | "yup">("zod");
+  const [teammateIds, setTeammateIds] = useState<number[]>([1]);
+
+  const appRenders = useRef(0);
+  appRenders.current++;
+
+  const schema = useMemo(() => {
+    return adapterType === "zod"
+      ? zodResolver(zodLoginSchema)
+      : yupResolver(yupLoginSchema);
+  }, [adapterType]);
+
+  // subscribe: false ensures the App component does NOT re-render on input keystrokes
+  const form = useForm({
+    schema,
+    subscribe: false,
+    onSubmit: (values) => {
+      console.log("SUBMIT SUCCESS:", values);
+      alert(`Login Successful!\n${JSON.stringify(values, null, 2)}`);
+    },
+    onInvalid: (errors) => {
+      console.warn("FORM INVALID:", errors);
+    },
+  });
+
+  const addTeammate = () => {
+    setTeammateIds((prev) => [...prev, Date.now()]);
+  };
+
+  const removeTeammate = (index: number) => {
+    setTeammateIds((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div
+      style={{
+        maxWidth: "540px",
+        margin: "40px auto",
+        padding: "24px",
+        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+        backgroundColor: "#ffffff",
+        borderRadius: "12px",
+        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+      }}
+    >
+      <div style={{ marginBottom: "16px" }}>
+        <h1 style={{ margin: "0 0 6px", fontSize: "22px", color: "#0f172a" }}>
+          Native Form Showcase
+        </h1>
+        <p style={{ margin: 0, fontSize: "14px", color: "#64748b" }}>
+          Zero registration, native HTML-first form with live telemetry.
+        </p>
+      </div>
+
+      {/* Adapter selector & App render counter */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "10px 14px",
+          background: "#f1f5f9",
+          borderRadius: "8px",
+          marginBottom: "16px",
+          fontSize: "13px",
+        }}
+      >
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <span style={{ fontWeight: 600, color: "#334155" }}>Adapter:</span>
+          <label style={{ cursor: "pointer", display: "flex", gap: "4px" }}>
+            <input
+              type="radio"
+              name="adapter"
+              checked={adapterType === "zod"}
+              onChange={() => setAdapterType("zod")}
+            />
+            Zod
+          </label>
+          <label style={{ cursor: "pointer", display: "flex", gap: "4px" }}>
+            <input
+              type="radio"
+              name="adapter"
+              checked={adapterType === "yup"}
+              onChange={() => setAdapterType("yup")}
+            />
+            Yup
+          </label>
+        </div>
+
+        <span style={{ color: "#475569", fontWeight: 500 }}>
+          Parent Form Renders: <strong>{appRenders.current}</strong>
+        </span>
+      </div>
+
       <form
         ref={form.formRef}
         noValidate
         style={{ display: "flex", flexDirection: "column", gap: "16px" }}
       >
-        <div>
-          <label htmlFor={USER_EMAIL}>Email:</label>
-          <input
-            id={USER_EMAIL}
-            name={USER_EMAIL}
-            type="email"
+        <InputField
+          form={form}
+          name={USER_EMAIL}
+          label="Your Email"
+          type="email"
+          defaultValue=""
+        />
+
+        <InputField
+          form={form}
+          name={USER_PASSWORD}
+          label="Your Password"
+          type="password"
+          defaultValue=""
+        />
+
+        {/* Dynamic Field Array */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div
             style={{
-              width: "100%",
-              padding: "8px",
-              marginTop: "4px",
-              borderWidth: "1px",
-              borderStyle: "solid",
-              borderColor: "#ccc",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
-          />
-          <FieldStatus
-            label="Email"
-            touched={email.touched}
-            dirty={email.dirty}
-            error={email.error}
-          />
+          >
+            <label
+              style={{
+                fontSize: "14px",
+                fontWeight: 600,
+                color: "#1e293b",
+              }}
+            >
+              Teammates ({teammateIds.length})
+            </label>
+            <button
+              type="button"
+              onClick={addTeammate}
+              style={{
+                padding: "4px 10px",
+                backgroundColor: "#e0e7ff",
+                color: "#3730a3",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: 600,
+                fontSize: "12px",
+              }}
+            >
+              + Add Teammate
+            </button>
+          </div>
+
+          {teammateIds.map((id, index) => {
+            const fieldName = arrayItemPath("teammates", index, "email");
+            return (
+              <TeammateRow
+                key={id}
+                form={form}
+                name={fieldName}
+                index={index}
+                onRemove={() => removeTeammate(index)}
+              />
+            );
+          })}
         </div>
 
-        <div>
-          <label htmlFor={USER_PASSWORD}>Password:</label>
-          <input
-            id={USER_PASSWORD}
-            name={USER_PASSWORD}
-            type="password"
+        <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+          <button
+            type="submit"
             style={{
-              width: "100%",
-              padding: "8px",
-              marginTop: "4px",
-              borderWidth: "1px",
-              borderStyle: "solid",
-              borderColor: "#ccc",
+              flex: 1,
+              padding: "10px",
+              backgroundColor: "#2563eb",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "6px",
+              fontWeight: 600,
+              fontSize: "14px",
+              cursor: "pointer",
             }}
-          />
-          <FieldStatus
-            label="Password"
-            touched={password.touched}
-            dirty={password.dirty}
-            error={password.error}
-          />
-        </div>
-
-        <div>
-          <label htmlFor={TEAMMATE_0_EMAIL}>Teammate Email:</label>
-          <input
-            id={TEAMMATE_0_EMAIL}
-            name={TEAMMATE_0_EMAIL}
-            type="email"
-            defaultValue="teammate@example.com"
-            style={{
-              width: "100%",
-              padding: "8px",
-              marginTop: "4px",
-              borderWidth: "1px",
-              borderStyle: "solid",
-              borderColor: "#ccc",
-            }}
-          />
-          <FieldStatus
-            label="Teammate Email"
-            touched={teammateEmail.touched}
-            dirty={teammateEmail.dirty}
-            error={teammateEmail.error}
-          />
-        </div>
-
-        <p style={{ margin: 0, fontSize: "12px", color: "#344054" }}>
-          Form valid: {String(form.formState.valid)} | submitting:{" "}
-          {String(form.formState.submitting)}
-        </p>
-
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button type="submit" style={{ flex: 1, padding: "8px" }}>
-            Login
+          >
+            Submit Form
           </button>
-          <button type="reset" style={{ flex: 1, padding: "8px" }}>
+          <button
+            type="reset"
+            style={{
+              padding: "10px 18px",
+              backgroundColor: "#f1f5f9",
+              color: "#334155",
+              border: "1px solid #cbd5e1",
+              borderRadius: "6px",
+              fontWeight: 600,
+              fontSize: "14px",
+              cursor: "pointer",
+            }}
+          >
             Reset
           </button>
         </div>
       </form>
+
+      <LiveTelemetry form={form} />
     </div>
   );
-};
+}
 
 ReactDOM.createRoot(document.getElementById("root")!).render(<App />);

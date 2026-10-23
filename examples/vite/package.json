@@ -10,15 +10,17 @@
   "dependencies": {
     "@native-form/core": "workspace:^",
     "@native-form/react": "workspace:^",
+    "@native-form/yup": "workspace:*",
     "@native-form/zod": "workspace:*",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "yup": "^1.7.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@native-form/adapter-contracts": "workspace:*",
     "@vitejs/plugin-react": "^4.0.0",
     "typescript": "^5.7.0",
-    "vite": "^5.0.0",
-    "@native-form/adapter-contracts": "workspace:*"
+    "vite": "^5.0.0"
   }
 }

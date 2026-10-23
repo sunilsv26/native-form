@@ -35,6 +35,9 @@ importers:
       '@native-form/react':
         specifier: workspace:^
         version: link:../../packages/react
+      '@native-form/yup':
+        specifier: workspace:*
+        version: link:../../packages/yup
       '@native-form/zod':
         specifier: workspace:*
         version: link:../../packages/zod
@@ -44,6 +47,9 @@ importers:
       react-dom:
         specifier: ^18.0.0
         version: 18.3.1(react@18.3.1)
+      yup:
+        specifier: ^1.7.1
+        version: 1.7.1
       zod:
         specifier: ^4.4.3
         version: 4.4.3

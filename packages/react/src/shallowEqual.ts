@@ -45,3 +45,4 @@ export function shallowEqual<T>(a: T, b: T): boolean {
 
   return true;
 }
+

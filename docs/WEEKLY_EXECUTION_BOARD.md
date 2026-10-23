@@ -2,7 +2,7 @@
 
 This board converts backlog items into a practical week-by-week plan.
 
-## Week 1
+## Week 1 (Completed)
 
 Focus: NF-013 React adapter integration test foundation
 
@@ -23,10 +23,10 @@ Files:
 
 Exit criteria:
 
-- React tests run through workspace test command.
-- Tests are deterministic and green.
+- [x] React tests run through workspace test command.
+- [x] Tests are deterministic and green.
 
-## Week 2
+## Week 2 (Completed)
 
 Focus: NF-014 Yup adapter MVP
 
@@ -46,10 +46,10 @@ Files:
 
 Exit criteria:
 
-- Yup resolver is contract-compatible with core Validator behavior.
-- Test coverage includes nested and array paths.
+- [x] Yup resolver is contract-compatible with core Validator behavior.
+- [x] Test coverage includes nested and array paths.
 
-## Week 3
+## Week 3 (Completed)
 
 Focus: NF-015 Adapter contract matrix
 
@@ -66,9 +66,9 @@ Files:
 
 Exit criteria:
 
-- Contract suite passes for all supported adapters.
+- [x] Contract suite passes for all supported adapters.
 
-## Week 4
+## Week 4 (Completed)
 
 Focus: NF-016 Migration and positioning docs
 
@@ -85,9 +85,9 @@ Files:
 
 Exit criteria:
 
-- Migration guide is complete and linked from README.
+- [x] Migration guide is complete and linked from README.
 
-## Week 5
+## Week 5 (Completed)
 
 Focus: NF-017 Field array ergonomics layer
 
@@ -105,27 +105,31 @@ Files:
 
 Exit criteria:
 
-- Add/remove/reorder indexed fields remain stable for values and errors.
+- [x] Add/remove/reorder indexed fields remain stable for values and errors.
+- [x] Discovery correctly cleans up renamed/re-indexed registry keys.
 
-## Week 6
+## Week 6 (Completed)
 
 Focus: NF-018 Watch and selector ergonomics
 
 PR slices:
 
-1. Add selective subscription ergonomics in React hooks.
+1. Add selective subscription ergonomics in React hooks (`useWatch`, `useField` selector, `useForm` selector).
 2. Add tests for targeted state updates.
 
 Files:
 
 - packages/react/src/useForm.ts
 - packages/react/src/useField.ts
+- packages/react/src/useWatch.ts
+- packages/react/src/shallowEqual.ts
 - packages/react/src/index.ts
 - packages/react/test/watchSelectors.test.tsx
 
 Exit criteria:
 
-- Targeted subscriptions work without introducing registration APIs.
+- [x] Targeted subscriptions work without introducing registration APIs.
+- [x] Isolated re-renders verified under unit & integration test suite.
 
 ## Execution Rules
 

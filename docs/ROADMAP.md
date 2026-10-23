@@ -25,13 +25,14 @@ Ship a production-ready npm form library with:
 - Deterministic lifecycle and validation behavior
 - Backward-safe public API evolution
 
-## Current State (2026-07-09)
+## Current State
 
-- Core runtime contracts are stable and tested.
+- Core runtime contracts are stable, hardened, and verified with 146 unit & integration tests.
 - Browser edge-case coverage and async cancellation semantics are implemented.
-- React package exists but needs dedicated integration tests.
-- Zod adapter exists with tests.
-- Release automation is intentionally deferred in favor of developer and product fit work.
+- Schema adapters for Zod and Yup are production-ready and validated with a shared contract matrix.
+- Field array lifecycle stability and path utilities (`formPath`, `arrayItemPath`, `splitPath`, `parseArrayItemPath`, `shiftArrayItemIndex`, `remapArrayItemIndex`) are implemented and tested.
+- React watch and selector ergonomics (`useWatch`, `useField` selector, `useForm` selector/mode) provide targeted subscriptions with isolated renders.
+- Full verification pipeline (`pnpm verify` & `api:extract`) passes with 0 errors and 0 warnings.
 
 ## Milestone v0.1 (Foundation)
 
@@ -42,7 +43,6 @@ Outcome:
 Status:
 
 - Completed: NF-001, NF-002, NF-003, NF-004, NF-005.
-- Operational publish setup can resume later.
 
 ## Milestone v0.4 (Adoption Readiness)
 
@@ -53,25 +53,20 @@ Primary outcome:
 Scope:
 
 1. React adapter reliability
-
-- Add React integration tests for Form/useForm/useField lifecycle and error propagation.
-- Validate behavior under rerenders and async validation overlap.
+- React integration tests for Form/useForm/useField lifecycle and error propagation.
+- Verified behavior under rerenders and async validation overlap.
 
 2. Adapter ecosystem expansion
-
-- Add @native-form/yup adapter.
-- Add shared adapter contract tests across zod and yup.
+- Added `@native-form/yup` adapter (`yupResolver`).
+- Shared adapter contract tests across zod and yup (`@native-form/adapter-contracts`).
 
 3. Adoption docs
+- Migration guide from RHF/Formik mental models (`docs/MIGRATION_RHF.md`).
+- Positioning guidance, quick-starts, and Vite example app.
 
-- Add migration guide from RHF/Formik mental models.
-- Add practical positioning guidance and examples.
+Status:
 
-Success metrics:
-
-- React integration test suite exists and is green in CI.
-- Zod and yup examples both work with matching field-name semantics.
-- Contract tests enforce consistent adapter behavior.
+- Completed: NF-013, NF-014, NF-015, NF-016.
 
 ## Milestone v0.5 (Ergonomics)
 
@@ -82,17 +77,30 @@ Primary outcome:
 Scope:
 
 1. Field array ergonomics
-
-- Build ergonomic add/remove/reorder helpers while preserving name-based model.
+- Ergonomic add/remove/reorder helpers while preserving name-based model.
+- Dynamic field addition/removal/re-indexing lifecycle stability.
 
 2. Watch and selector ergonomics
+- Lightweight selective subscriptions for form and field slices (`useWatch`, `useField` selector, `useForm` selector).
+- Zero-dependency `shallowEqual` for structural selector comparison.
 
-- Add lightweight selective subscriptions for form and field slices.
+Status:
 
-Success metrics:
+- Completed: NF-017, NF-018.
 
-- Complex nested+array forms are practical without controlled components.
-- Ergonomic APIs reduce boilerplate while preserving DOM-first architecture.
+## Next Milestones
+
+### Milestone v0.6 (Release Packaging & Distribution)
+
+- Clean API extractor report and doc models.
+- Version bump and changelog preparation across workspace packages.
+- CI/CD publish automation and npm distribution.
+
+### Milestone v0.7 (Extensibility RFCs)
+
+- NF-011: Plugin and middleware design RFC around runtime pipeline hooks (`serialize -> validate -> render -> emit`).
+- NF-012: Serializer evolution investigation (element-level serializers).
+- Additional schema adapters (Valibot, ArkType).
 
 ## Risks and Mitigations
 

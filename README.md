@@ -19,9 +19,11 @@ Native HTML-first form runtime and adapters.
 
 ## Packages
 
-- `@native-form/core`: framework-agnostic runtime, discovery, registry, serialization, and validation pipeline contracts.
-- `@native-form/react`: React bindings/components that consume core runtime behavior.
-- `@native-form/zod`: Zod adapter layer for schema-driven validation integration.
+- `@native-form/core`: framework-agnostic runtime, discovery, registry, serialization, path helpers, and validation pipeline contracts.
+- `@native-form/react`: React bindings, components, and hooks (`<Form>`, `useForm`, `useField`, `useWatch`).
+- `@native-form/zod`: Zod adapter layer for schema-driven validation integration (`zodResolver`).
+- `@native-form/yup`: Yup adapter layer for schema-driven validation integration (`yupResolver`).
+- `@native-form/adapter-contracts`: shared test fixtures and contract test matrix across schema adapters.
 
 ## Development
 
@@ -56,11 +58,12 @@ export function LoginForm() {
 
 Fields are discovered automatically by their `name` attribute (no manual registration).
 
-Validation example (with Zod):
+### Validation with Zod
 
 ```tsx
 import { z } from "zod";
 import { Form } from "@native-form/react";
+import { zodResolver } from "@native-form/zod";
 
 const schema = z.object({
   email: z.string().email("Invalid email"),
@@ -68,7 +71,7 @@ const schema = z.object({
 
 export function LoginForm() {
   return (
-    <Form schema={schema} onSubmit={(values) => console.log(values)}>
+    <Form schema={zodResolver(schema)} onSubmit={(values) => console.log(values)}>
       <input name="email" type="email" />
       <button type="submit">Submit</button>
     </Form>
@@ -76,7 +79,28 @@ export function LoginForm() {
 }
 ```
 
-Hooks example (`useForm` + `useField`):
+### Validation with Yup
+
+```tsx
+import * as yup from "yup";
+import { Form } from "@native-form/react";
+import { yupResolver } from "@native-form/yup";
+
+const schema = yup.object({
+  email: yup.string().email("Invalid email").required(),
+});
+
+export function LoginForm() {
+  return (
+    <Form schema={yupResolver(schema)} onSubmit={(values) => console.log(values)}>
+      <input name="email" type="email" />
+      <button type="submit">Submit</button>
+    </Form>
+  );
+}
+```
+
+### Hooks (`useForm` + `useField`)
 
 ```tsx
 import { useMemo } from "react";
@@ -104,17 +128,59 @@ export function LoginForm() {
 }
 ```
 
-Path helpers (nested and array field names):
+### Targeted Watch & Selective Subscriptions (`useWatch`)
+
+Use `useWatch` to subscribe to individual fields, multi-field lists, or computed slices without re-rendering the whole form:
 
 ```tsx
-import { arrayItemPath, formPath } from "@native-form/core";
+import { useForm, useWatch, useField } from "@native-form/react";
 
-const USER_EMAIL = formPath("user", "email");
-const TEAMMATE_0_EMAIL = arrayItemPath("teammates", 0, "email");
+function EmailPreview({ form }) {
+  // Only re-renders when "email" value changes
+  const email = useWatch({ form, name: "email" });
+  return <p>Preview: {String(email ?? "")}</p>;
+}
 
-// Use in markup or hooks:
-// <input name={USER_EMAIL} />
-// <input name={TEAMMATE_0_EMAIL} />
+function SubmitButton({ form }) {
+  // Only re-renders when validity state flips
+  const isValid = useWatch({ form, selector: (state) => state.valid });
+  return <button disabled={!isValid} type="submit">Submit</button>;
+}
+
+export function RegistrationForm() {
+  // subscribe: false decouples parent form from input keystrokes
+  const form = useForm({ subscribe: false });
+
+  return (
+    <form ref={form.formRef}>
+      <input name="email" type="email" />
+      <input name="password" type="password" />
+      <EmailPreview form={form} />
+      <SubmitButton form={form} />
+    </form>
+  );
+}
+```
+
+### Path Helpers (Nested & Array Field Names)
+
+```tsx
+import {
+  arrayItemPath,
+  formPath,
+  parseArrayItemPath,
+  shiftArrayItemIndex,
+  splitPath,
+} from "@native-form/core";
+
+// Path building:
+const USER_EMAIL = formPath("user", "email"); // "user.email"
+const TEAMMATE_0_EMAIL = arrayItemPath("teammates", 0, "email"); // "teammates.0.email"
+
+// Path parsing & array shifting on deletion:
+splitPath("items.0.name"); // ["items", "0", "name"]
+parseArrayItemPath("items.0.name"); // { arrayName: "items", index: 0, subPath: "name" }
+shiftArrayItemIndex("items.2.name", "items", 1, -1); // "items.1.name"
 ```
 
 On invalid submit/change, runtime-managed inline/native error messages are applied next to the affected field.

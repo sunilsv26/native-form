@@ -5,7 +5,13 @@ type CoreValueExportKey =
   | "arrayItemPath"
   | "createValidationPipeline"
   | "createValidator"
-  | "formPath";
+  | "formPath"
+  | "isArrayItemPath"
+  | "matchArrayItemPath"
+  | "parseArrayItemPath"
+  | "remapArrayItemIndex"
+  | "shiftArrayItemIndex"
+  | "splitPath";
 
 type CoreModule = typeof import("../src/index");
 type ActualCoreValueKeys = keyof CoreModule;

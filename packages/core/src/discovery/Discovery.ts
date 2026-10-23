@@ -42,11 +42,11 @@ export class Discovery {
       }
     }
 
-    // Unregister any fields that were removed from the DOM since the
-    // previous discovery pass.
-    for (const field of registry.getAll()) {
-      if (!seen.has(field.name)) {
-        registry.unregister(field.name);
+    // Unregister any fields that were removed from the DOM or whose names changed
+    // since the previous discovery pass.
+    for (const [key, field] of registry.entries()) {
+      if (!seen.has(key) || field.element.name !== key) {
+        registry.unregister(key);
       }
     }
   }

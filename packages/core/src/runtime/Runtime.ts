@@ -652,34 +652,41 @@ export class Runtime<
       return;
     }
 
-    const previousFieldNames = new Set(
-      this.registry.values().map((field) => field.name),
+    const previousFields = this.registry.values();
+    const previousFieldMap = new Map(
+      previousFields.map((field) => [field.name, field]),
     );
+
+    const activeControlNames = new Set<string>();
+    for (const control of Array.from(this.form.elements)) {
+      if (
+        (control instanceof HTMLInputElement ||
+          control instanceof HTMLSelectElement ||
+          control instanceof HTMLTextAreaElement) &&
+        control.name
+      ) {
+        activeControlNames.add(control.name);
+      }
+    }
+
+    for (const field of previousFields) {
+      if (!activeControlNames.has(field.name)) {
+        this.fieldErrorRenderer.applyErrors([field], {});
+        delete this.errors[field.name];
+      }
+    }
 
     this.discovery.discover(this.form, this.registry);
 
     const values = this.serialize();
-    const nextFieldNames = new Set(
-      this.registry.values().map((field) => field.name),
-    );
 
     for (const field of this.registry.values()) {
-      field.register(values[field.name]);
-      // registry will emit mount notifications via `onChange`.
-    }
-
-    for (const name of previousFieldNames) {
-      if (nextFieldNames.has(name)) {
-        continue;
+      if (
+        !previousFieldMap.has(field.name) ||
+        previousFieldMap.get(field.name) !== field
+      ) {
+        field.register(values[field.name]);
       }
-
-      const removed = this.registry.get(name);
-      if (removed) {
-        this.fieldErrorRenderer.applyErrors([removed], {});
-      }
-
-      // registry.unregister already handles node cleanup
-      this.registry.unregister(name);
     }
   }
 

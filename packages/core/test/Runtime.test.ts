@@ -1386,6 +1386,188 @@ describe("Runtime", () => {
       email: "active submit error",
     });
   });
+
+  it("preserves touched and dirty state of existing fields when adding new array items after mount", async () => {
+    const form = createForm(`
+      <input name="items.0.name" value="First" />
+    `);
+    const runtime = new Runtime();
+    runtime.mount(form);
+
+    const firstInput = form.elements.namedItem(
+      "items.0.name",
+    ) as HTMLInputElement;
+
+    // Modify and touch first input
+    firstInput.value = "First Modified";
+    firstInput.dispatchEvent(new Event("input", { bubbles: true }));
+    firstInput.dispatchEvent(new FocusEvent("blur", { bubbles: true }));
+
+    expect(runtime.getFieldState("items.0.name")).toMatchObject({
+      dirty: true,
+      touched: true,
+      value: "First Modified",
+    });
+
+    // Dynamically append new array row
+    const secondInput = document.createElement("input");
+    secondInput.name = "items.1.name";
+    secondInput.value = "Second";
+    form.append(secondInput);
+
+    await Promise.resolve();
+
+    // Verify existing field state was NOT wiped
+    expect(runtime.getFieldState("items.0.name")).toMatchObject({
+      dirty: true,
+      touched: true,
+      value: "First Modified",
+    });
+
+    // Verify new field is initialized properly
+    expect(runtime.getFieldState("items.1.name")).toMatchObject({
+      dirty: false,
+      touched: false,
+      value: "Second",
+      mounted: true,
+    });
+
+    expect(runtime.serialize()).toEqual({
+      "items.0.name": "First Modified",
+      "items.1.name": "Second",
+    });
+  });
+
+  it("cleans up validation errors and error UI when an invalid array item is removed from DOM", async () => {
+    const form = createForm(`
+      <input name="items.0.name" value="Valid Name" />
+      <input name="items.1.name" value="" />
+    `);
+
+    const runtime = new Runtime({
+      validator: {
+        async validate(values) {
+          const issues = [];
+          if (!values["items.0.name"]) {
+            issues.push({ name: "items.0.name", message: "Item 0 required" });
+          }
+          if (!values["items.1.name"]) {
+            issues.push({ name: "items.1.name", message: "Item 1 required" });
+          }
+          return issues.length === 0
+            ? { success: true, values }
+            : { success: false, issues };
+        },
+      },
+    });
+
+    runtime.mount(form);
+
+    const initialResult = await runtime.submit();
+    expect(initialResult.success).toBe(false);
+    expect(runtime.getFormState().valid).toBe(false);
+    expect(runtime.getFormState().errors).toEqual({
+      "items.1.name": "Item 1 required",
+    });
+
+    const secondInput = form.elements.namedItem(
+      "items.1.name",
+    ) as HTMLInputElement;
+    expect(secondInput.validationMessage).toBe("Item 1 required");
+
+    // Remove the invalid row from DOM
+    secondInput.remove();
+    await Promise.resolve();
+
+    // Verify error for removed item is cleared
+    expect(runtime.getFormState().errors).toEqual({});
+    expect(runtime.getFormState().valid).toBe(true);
+    expect(runtime.getFieldState("items.1.name")).toBeUndefined();
+  });
+
+  it("handles reordering and re-indexing of array item fields with correct values and serialization", async () => {
+    const form = createForm(`
+      <input name="items.0.name" value="Alice" />
+      <input name="items.1.name" value="Bob" />
+      <input name="items.2.name" value="Charlie" />
+    `);
+
+    const runtime = new Runtime();
+    runtime.mount(form);
+
+    expect(runtime.serialize()).toEqual({
+      "items.0.name": "Alice",
+      "items.1.name": "Bob",
+      "items.2.name": "Charlie",
+    });
+
+    // Remove row 1 ("Bob") and re-index row 2 ("Charlie" -> items.1.name)
+    const row1 = form.elements.namedItem("items.1.name") as HTMLInputElement;
+    const row2 = form.elements.namedItem("items.2.name") as HTMLInputElement;
+
+    row1.remove();
+    row2.name = "items.1.name";
+
+    await Promise.resolve();
+
+    expect(runtime.serialize()).toEqual({
+      "items.0.name": "Alice",
+      "items.1.name": "Charlie",
+    });
+
+    expect(runtime.getFieldState("items.0.name")?.value).toBe("Alice");
+    expect(runtime.getFieldState("items.1.name")?.value).toBe("Charlie");
+    expect(runtime.getFieldState("items.2.name")).toBeUndefined();
+  });
+
+  it("correctly projects and updates validation errors after array item fields are reordered", async () => {
+    const form = createForm(`
+      <input name="items.0.name" value="Valid" />
+      <input name="items.1.name" value="" />
+    `);
+
+    const runtime = new Runtime({
+      validator: {
+        async validate(values) {
+          const issues = [];
+          if (!values["items.0.name"]) {
+            issues.push({ name: "items.0.name", message: "Item 0 required" });
+          }
+          if (!values["items.1.name"]) {
+            issues.push({ name: "items.1.name", message: "Item 1 required" });
+          }
+          return issues.length === 0
+            ? { success: true, values }
+            : { success: false, issues };
+        },
+      },
+    });
+
+    runtime.mount(form);
+
+    await runtime.submit();
+    expect(runtime.getFormState().errors).toEqual({
+      "items.1.name": "Item 1 required",
+    });
+
+    // Swap values so items.0.name is now invalid and items.1.name is valid
+    const input0 = form.elements.namedItem("items.0.name") as HTMLInputElement;
+    const input1 = form.elements.namedItem("items.1.name") as HTMLInputElement;
+
+    input0.value = "";
+    input0.dispatchEvent(new Event("change", { bubbles: true }));
+
+    input1.value = "Now Valid";
+    input1.dispatchEvent(new Event("change", { bubbles: true }));
+
+    await runtime.submit();
+
+    expect(runtime.getFormState().errors).toEqual({
+      "items.0.name": "Item 0 required",
+    });
+    expect(input0.validationMessage).toBe("Item 0 required");
+    expect(input1.validationMessage).toBe("");
+  });
 });
 
 function createForm(markup: string): HTMLFormElement {

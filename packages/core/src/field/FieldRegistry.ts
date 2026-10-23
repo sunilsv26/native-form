@@ -33,6 +33,14 @@ export class FieldRegistry {
     return [...this.fields.values()];
   }
 
+  keys(): string[] {
+    return Array.from(this.fields.keys());
+  }
+
+  entries(): [string, FieldNode][] {
+    return Array.from(this.fields.entries());
+  }
+
   clear(): void {
     for (const field of this.fields.values()) {
       field.unregister();

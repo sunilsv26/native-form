@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type {
+  ArrayItemPathInfo as ArrayItemPathInfoFromBarrel,
+  FieldEvents as FieldEventsFromBarrel,
   FieldState as FieldStateFromBarrel,
   FieldPathSegment as FieldPathSegmentFromBarrel,
+  FormEvents as FormEventsFromBarrel,
   NativeFormElement as NativeFormElementFromBarrel,
   NativeFormFlatValues as NativeFormFlatValuesFromBarrel,
   NativeFormNestedValue as NativeFormNestedValueFromBarrel,
@@ -19,6 +22,7 @@ import type {
   StandardSchemaResult as StandardSchemaResultFromBarrel,
   StandardSchemaV1 as StandardSchemaV1FromBarrel,
   ValidationContext as ValidationContextFromBarrel,
+  ValidationEvents as ValidationEventsFromBarrel,
   ValidationFieldMeta as ValidationFieldMetaFromBarrel,
   ValidationIssue as ValidationIssueFromBarrel,
   ValidationPipeline as ValidationPipelineFromBarrel,
@@ -29,8 +33,13 @@ import type {
   Validator as ValidatorFromBarrel,
 } from "../src/index";
 import type { FieldState as FieldStateCanonical } from "../src/field/FieldState";
-import type { FieldPathSegment as FieldPathSegmentCanonical } from "../src/Path";
 import type {
+  ArrayItemPathInfo as ArrayItemPathInfoCanonical,
+  FieldPathSegment as FieldPathSegmentCanonical,
+} from "../src/Path";
+import type {
+  FieldEvents as FieldEventsCanonical,
+  FormEvents as FormEventsCanonical,
   NativeFormElement as NativeFormElementCanonical,
   NativeFormFlatValues as NativeFormFlatValuesCanonical,
   NativeFormNestedValue as NativeFormNestedValueCanonical,
@@ -39,6 +48,7 @@ import type {
   RuntimeEvent as RuntimeEventCanonical,
   RuntimeEventType as RuntimeEventTypeCanonical,
   RuntimeListener as RuntimeListenerCanonical,
+  ValidationEvents as ValidationEventsCanonical,
 } from "../src/shared/types";
 import type {
   RuntimeFormState as RuntimeFormStateCanonical,
@@ -68,6 +78,16 @@ type IsEqual<Left, Right> =
     ? true
     : false;
 
+type ArrayItemPathInfoParity = IsEqual<
+  ArrayItemPathInfoFromBarrel,
+  ArrayItemPathInfoCanonical
+>;
+type FieldEventsParity = IsEqual<FieldEventsFromBarrel, FieldEventsCanonical>;
+type FormEventsParity = IsEqual<FormEventsFromBarrel, FormEventsCanonical>;
+type ValidationEventsParity = IsEqual<
+  ValidationEventsFromBarrel,
+  ValidationEventsCanonical
+>;
 type FieldStateParity = IsEqual<FieldStateFromBarrel, FieldStateCanonical>;
 type FieldPathSegmentParity = IsEqual<
   FieldPathSegmentFromBarrel,
@@ -170,6 +190,10 @@ type ValidationPipelineParity = IsEqual<
   ValidationPipelineCanonical
 >;
 
+const arrayItemPathInfoParity: ArrayItemPathInfoParity = true;
+const fieldEventsParity: FieldEventsParity = true;
+const formEventsParity: FormEventsParity = true;
+const validationEventsParity: ValidationEventsParity = true;
 const fieldStateParity: FieldStateParity = true;
 const fieldPathSegmentParity: FieldPathSegmentParity = true;
 const nativeFormElementParity: NativeFormElementParity = true;
@@ -202,6 +226,10 @@ const validationPipelineParity: ValidationPipelineParity = true;
 
 describe("@native-form/core public barrel type contract", () => {
   it("keeps type exports aligned to canonical module definitions", () => {
+    expect(arrayItemPathInfoParity).toBe(true);
+    expect(fieldEventsParity).toBe(true);
+    expect(formEventsParity).toBe(true);
+    expect(validationEventsParity).toBe(true);
     expect(fieldStateParity).toBe(true);
     expect(fieldPathSegmentParity).toBe(true);
     expect(nativeFormElementParity).toBe(true);

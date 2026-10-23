@@ -5,7 +5,18 @@ export {
   type RuntimePublicApi,
 } from "./Runtime";
 
-export { arrayItemPath, type FieldPathSegment, formPath } from "./Path";
+export {
+  arrayItemPath,
+  type ArrayItemPathInfo,
+  type FieldPathSegment,
+  formPath,
+  isArrayItemPath,
+  matchArrayItemPath,
+  parseArrayItemPath,
+  remapArrayItemIndex,
+  shiftArrayItemIndex,
+  splitPath,
+} from "./Path";
 
 export {
   createValidationPipeline,
@@ -32,6 +43,9 @@ export {
 export { type FieldState } from "./FieldState";
 
 export {
+  type FieldEvents,
+  type FormEvents,
+  type NativeFormElement,
   type NativeFormFlatValues,
   type NativeFormNestedValue,
   type NativeFormValue,
@@ -39,4 +53,5 @@ export {
   type RuntimeEvent,
   type RuntimeEventType,
   type RuntimeListener,
+  type ValidationEvents,
 } from "./types";

@@ -98,8 +98,8 @@ Status:
 
 ### Milestone v0.7 (Extensibility RFCs)
 
-- NF-011: Plugin and middleware design RFC around runtime pipeline hooks (`serialize -> validate -> render -> emit`).
-- NF-012: Serializer evolution investigation (element-level serializers).
+- [x] NF-011: Plugin and middleware design RFC around runtime pipeline hooks (serialize -> validate -> render -> emit) ([RFC 001](rfcs/RFC_001_PLUGINS_AND_MIDDLEWARE.md)).
+- [x] NF-012: Serializer evolution investigation (element-level serializers) ([RFC 002](rfcs/RFC_002_SERIALIZER_EVOLUTION.md)).
 - Additional schema adapters (Valibot, ArkType).
 
 ## Risks and Mitigations

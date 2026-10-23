@@ -131,6 +131,30 @@ Exit criteria:
 - [x] Targeted subscriptions work without introducing registration APIs.
 - [x] Isolated re-renders verified under unit & integration test suite.
 
+## Week 7 (Completed)
+
+Focus: Milestone v0.7 Extensibility RFCs (NF-011 & NF-012)
+
+PR slices:
+
+1. Draft and finalize RFC 001: Runtime Extension Points (Plugins & Middleware).
+2. Author RFC 002: Serializer Evolution (serializeFields vs serialize(form)).
+3. Connect RFC architecture to backlog and roadmap references.
+
+Files:
+
+- docs/rfcs/RFC_001_PLUGINS_AND_MIDDLEWARE.md
+- docs/rfcs/RFC_002_SERIALIZER_EVOLUTION.md
+- docs/ISSUE_BACKLOG.md
+- docs/ROADMAP.md
+- docs/WEEKLY_EXECUTION_BOARD.md
+
+Exit criteria:
+
+- [x] RFC 001 specifies plugin contracts, middleware onion model, and migration strategy.
+- [x] RFC 002 evaluates tradeoffs, defines dual-mode hybrid architecture, and fast-path O(1) single-field reads.
+- [x] Execution board and backlog updated with RFC deliverables.
+
 ## Execution Rules
 
 - One issue per branch.

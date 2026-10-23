@@ -270,6 +270,7 @@ Acceptance criteria:
 - Milestone: v0.3
 - Estimate: 3-4 days
 - Dependencies: v0.2 completion
+- Status: Completed (see RFC 001)
 
 Scope:
 
@@ -279,6 +280,7 @@ Acceptance criteria:
 
 - RFC documents goals, API sketch, lifecycle integration, and migration strategy.
 - No implementation required in this issue.
+- Delivered: [RFC 001: Runtime Extension Points (Plugins & Middleware)](rfcs/RFC_001_PLUGINS_AND_MIDDLEWARE.md).
 
 ---
 
@@ -290,6 +292,7 @@ Acceptance criteria:
 - Milestone: v0.3
 - Estimate: 2-3 days
 - Dependencies: NF-010
+- Status: Completed (see RFC 002)
 
 Scope:
 
@@ -299,6 +302,7 @@ Acceptance criteria:
 
 - Design note with tradeoffs and migration path.
 - Decision captured with rationale and impact.
+- Delivered: [RFC 002: Serializer Evolution (serializeFields vs serialize(form))](rfcs/RFC_002_SERIALIZER_EVOLUTION.md).
 
 ## Milestone v0.4 (Adoption Readiness)
 

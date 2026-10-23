@@ -1,12 +1,17 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 import {
   InferSchemaOutput,
+  NativeFormFlatValues,
+  NativeFormValue,
   NativeFormValues,
   Runtime,
+  RuntimeFormState,
   RuntimeOptions,
   SchemaLike,
 } from "@native-form/core";
+
+import { shallowEqual } from "./shallowEqual";
 
 /** @public */
 export interface UseFormOptions<
@@ -14,6 +19,7 @@ export interface UseFormOptions<
   TValues extends NativeFormValues = TSchema extends SchemaLike
     ? InferSchemaOutput<TSchema>
     : NativeFormValues,
+  TSelected = RuntimeFormState,
 > extends Omit<RuntimeOptions<TValues>, "schema" | "onSubmit" | "onInvalid"> {
   schema?: TSchema;
   onSubmit?: (values: TValues, event?: SubmitEvent) => void | Promise<void>;
@@ -22,6 +28,8 @@ export interface UseFormOptions<
     values: NativeFormValues,
     event?: SubmitEvent,
   ) => void;
+  selector?: (state: RuntimeFormState) => TSelected;
+  subscribe?: boolean;
 }
 
 /** @public */
@@ -31,6 +39,12 @@ export interface UseFormResult<
   formRef: React.RefObject<HTMLFormElement | null>;
   runtime: Runtime<TValues> | null;
   formState: ReturnType<Runtime<TValues>["getFormState"]>;
+  watch: {
+    <TResult>(selector: (state: RuntimeFormState) => TResult): TResult;
+    (name: string): NativeFormValue | undefined;
+    (names: readonly string[]): Record<string, NativeFormValue | undefined>;
+    (): NativeFormFlatValues;
+  };
 }
 
 function createEmptyFormState() {
@@ -52,7 +66,8 @@ export function useForm<
   TValues extends NativeFormValues = TSchema extends SchemaLike
     ? InferSchemaOutput<TSchema>
     : NativeFormValues,
->(options: UseFormOptions<TSchema, TValues> = {}): UseFormResult<TValues> {
+  TSelected = RuntimeFormState,
+>(options: UseFormOptions<TSchema, TValues, TSelected> = {}): UseFormResult<TValues> {
   const formRef = useRef<HTMLFormElement>(null);
   const runtimeRef = useRef<Runtime<TValues> | null>(null);
   const [formState, setFormState] = useState<
@@ -64,12 +79,20 @@ export function useForm<
   const schemaRef = useRef(options.schema);
   const validatorRef = useRef(options.validator);
   const pipelineRef = useRef(options.pipeline);
+  const selectorRef = useRef(options.selector);
+  const subscribeRef = useRef(options.subscribe);
 
   onSubmitRef.current = options.onSubmit;
   onInvalidRef.current = options.onInvalid;
   schemaRef.current = options.schema;
   validatorRef.current = options.validator;
   pipelineRef.current = options.pipeline;
+  selectorRef.current = options.selector;
+  subscribeRef.current = options.subscribe;
+
+  const selectedRef = useRef<unknown>(
+    options.selector ? options.selector(formState) : formState,
+  );
 
   useLayoutEffect(() => {
     if (!formRef.current) {
@@ -87,10 +110,29 @@ export function useForm<
 
     runtime.mount(formRef.current);
     runtimeRef.current = runtime;
-    setFormState(runtime.getFormState());
+
+    const initialFormState = runtime.getFormState();
+    setFormState(initialFormState);
+    if (selectorRef.current) {
+      selectedRef.current = selectorRef.current(initialFormState);
+    }
 
     const unsubscribe = runtime.subscribe(() => {
-      setFormState(runtime.getFormState());
+      if (subscribeRef.current === false) {
+        return;
+      }
+
+      const nextFormState = runtime.getFormState();
+
+      if (selectorRef.current) {
+        const nextSelected = selectorRef.current(nextFormState);
+        if (!shallowEqual(selectedRef.current, nextSelected)) {
+          selectedRef.current = nextSelected;
+          setFormState(nextFormState);
+        }
+      } else {
+        setFormState(nextFormState);
+      }
     });
 
     return () => {
@@ -100,9 +142,42 @@ export function useForm<
     };
   }, []);
 
+  const watch = useCallback(
+    ((
+      target?:
+        | string
+        | readonly string[]
+        | ((state: RuntimeFormState) => unknown),
+    ) => {
+      const currentState = runtimeRef.current
+        ? runtimeRef.current.getFormState()
+        : formState;
+
+      if (typeof target === "function") {
+        return target(currentState);
+      }
+
+      if (typeof target === "string") {
+        return currentState.values[target];
+      }
+
+      if (Array.isArray(target)) {
+        const result: Record<string, NativeFormValue | undefined> = {};
+        for (const n of target) {
+          result[n] = currentState.values[n];
+        }
+        return result;
+      }
+
+      return currentState.values;
+    }) as UseFormResult<TValues>["watch"],
+    [formState],
+  );
+
   return {
     formRef,
     runtime: runtimeRef.current,
     formState,
+    watch,
   };
 }

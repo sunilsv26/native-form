@@ -10,10 +10,12 @@
   "dependencies": {
     "@native-form/core": "workspace:^",
     "@native-form/react": "workspace:^",
+    "@native-form/valibot": "workspace:*",
     "@native-form/yup": "workspace:*",
     "@native-form/zod": "workspace:*",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "valibot": "^1.5.0",
     "yup": "^1.7.1",
     "zod": "^4.4.3"
   },

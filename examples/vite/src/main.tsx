@@ -9,8 +9,10 @@ import {
 } from "@native-form/react";
 import { zodResolver } from "@native-form/zod";
 import { yupResolver } from "@native-form/yup";
+import { valibotResolver } from "@native-form/valibot";
 import { z } from "zod";
 import * as yup from "yup";
+import * as v from "valibot";
 
 // --- Schemas ---
 
@@ -22,6 +24,22 @@ const zodLoginSchema = z.object({
   teammates: z.array(
     z.object({
       email: z.string().email("Enter a valid teammate email"),
+    }),
+  ),
+});
+
+const valibotLoginSchema = v.object({
+  user: v.object({
+    email: v.pipe(v.string(), v.email("Enter a valid email address")),
+    password: v.pipe(
+      v.string(),
+      v.trim(),
+      v.minLength(8, "Password must be at least 8 characters"),
+    ),
+  }),
+  teammates: v.array(
+    v.object({
+      email: v.pipe(v.string(), v.email("Enter a valid teammate email")),
     }),
   ),
 });
@@ -284,7 +302,9 @@ function LiveTelemetry({ form }: { form: UseFormResult }) {
 // --- Main App ---
 
 export function App() {
-  const [adapterType, setAdapterType] = useState<"zod" | "yup">("zod");
+  const [adapterType, setAdapterType] = useState<"zod" | "yup" | "valibot">(
+    "zod",
+  );
   const [validationMode, setValidationMode] = useState<ValidationMode>("onChange");
   const [teammateIds, setTeammateIds] = useState<number[]>([1]);
 
@@ -292,9 +312,15 @@ export function App() {
   appRenders.current++;
 
   const schema = useMemo(() => {
-    return adapterType === "zod"
-      ? zodResolver(zodLoginSchema)
-      : yupResolver(yupLoginSchema);
+    switch (adapterType) {
+      case "valibot":
+        return valibotResolver(valibotLoginSchema);
+      case "yup":
+        return yupResolver(yupLoginSchema);
+      case "zod":
+      default:
+        return zodResolver(zodLoginSchema);
+    }
   }, [adapterType]);
 
   // subscribe: false ensures the App component does NOT re-render on input keystrokes
@@ -361,9 +387,9 @@ export function App() {
           }}
         >
           {/* Adapter selector */}
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
             <span style={{ fontWeight: 600, color: "#334155" }}>Adapter:</span>
-            <label style={{ cursor: "pointer", display: "flex", gap: "4px" }}>
+            <label style={{ cursor: "pointer", display: "flex", gap: "4px", alignItems: "center" }}>
               <input
                 type="radio"
                 name="adapter"
@@ -372,7 +398,7 @@ export function App() {
               />
               Zod
             </label>
-            <label style={{ cursor: "pointer", display: "flex", gap: "4px" }}>
+            <label style={{ cursor: "pointer", display: "flex", gap: "4px", alignItems: "center" }}>
               <input
                 type="radio"
                 name="adapter"
@@ -381,6 +407,41 @@ export function App() {
               />
               Yup
             </label>
+            <label style={{ cursor: "pointer", display: "flex", gap: "4px", alignItems: "center" }}>
+              <input
+                type="radio"
+                name="adapter"
+                checked={adapterType === "valibot"}
+                onChange={() => setAdapterType("valibot")}
+              />
+              Valibot
+            </label>
+            <span
+              style={{
+                fontSize: "10px",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                backgroundColor:
+                  adapterType === "valibot"
+                    ? "#ede9fe"
+                    : adapterType === "zod"
+                      ? "#e0f2fe"
+                      : "#fef3c7",
+                color:
+                  adapterType === "valibot"
+                    ? "#6d28d9"
+                    : adapterType === "zod"
+                      ? "#0369a1"
+                      : "#b45309",
+                fontWeight: 600,
+              }}
+            >
+              {adapterType === "valibot"
+                ? "Valibot (v1.x modular ~1.5 kB)"
+                : adapterType === "zod"
+                  ? "Zod (TypeScript-first schema)"
+                  : "Yup (Classic object schema)"}
+            </span>
           </div>
 
           <span style={{ color: "#475569", fontWeight: 500 }}>

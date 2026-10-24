@@ -35,6 +35,9 @@ importers:
       '@native-form/react':
         specifier: workspace:^
         version: link:../../packages/react
+      '@native-form/valibot':
+        specifier: workspace:*
+        version: link:../../packages/valibot
       '@native-form/yup':
         specifier: workspace:*
         version: link:../../packages/yup
@@ -47,6 +50,9 @@ importers:
       react-dom:
         specifier: ^18.0.0
         version: 18.3.1(react@18.3.1)
+      valibot:
+        specifier: ^1.5.0
+        version: 1.5.0(typescript@5.9.3)
       yup:
         specifier: ^1.7.1
         version: 1.7.1

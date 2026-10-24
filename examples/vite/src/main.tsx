@@ -17,12 +17,7 @@ import * as yup from "yup";
 const zodLoginSchema = z.object({
   user: z.object({
     email: z.string().email("Enter a valid email address"),
-    password: z
-      .string()
-      .refine(
-        (val) => val.trim().length >= 8,
-        "Password must be at least 8 characters (cannot be only spaces)",
-      ),
+    password: z.string().trim().min(8, "Password must be at least 8 characters"),
   }),
   teammates: z.array(
     z.object({
@@ -39,11 +34,8 @@ const yupLoginSchema = yup.object({
       .required("Email is required"),
     password: yup
       .string()
-      .test(
-        "no-whitespace-only",
-        "Password must be at least 8 characters (cannot be only spaces)",
-        (val) => Boolean(val && val.trim().length >= 8),
-      )
+      .trim()
+      .min(8, "Password must be at least 8 characters")
       .required("Password is required"),
   }),
   teammates: yup.array().of(

@@ -100,6 +100,7 @@ export function useForm<
     }
 
     const runtime = new Runtime<TValues>({
+      mode: options.mode,
       schema: schemaRef.current as SchemaLike<TValues> | undefined,
       validator: validatorRef.current,
       pipeline: pipelineRef.current,
@@ -141,6 +142,17 @@ export function useForm<
       runtimeRef.current = null;
     };
   }, []);
+
+  useLayoutEffect(() => {
+    if (runtimeRef.current) {
+      runtimeRef.current.setOptions({
+        mode: options.mode,
+        schema: options.schema as any,
+        validator: options.validator,
+        pipeline: options.pipeline,
+      });
+    }
+  }, [options.mode, options.schema, options.validator, options.pipeline]);
 
   const watch = useCallback(
     ((

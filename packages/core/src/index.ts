@@ -54,4 +54,5 @@ export {
   type RuntimeEventType,
   type RuntimeListener,
   type ValidationEvents,
+  type ValidationMode,
 } from "./types";

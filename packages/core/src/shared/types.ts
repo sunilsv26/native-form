@@ -1,3 +1,18 @@
+/**
+ * Supported validation modes for form and field lifecycle.
+ * - onChange: validates on every input/change event (live)
+ * - onBlur: validates when an input loses focus
+ * - onSubmit: validates only upon form submission
+ * - onTouched: validates on blur first, then on change for touched fields
+ * - all: validates on both input and blur events
+ * @public
+ */
+export type ValidationMode =
+  | "onChange"
+  | "onBlur"
+  | "onSubmit"
+  | "onTouched"
+  | "all";
 /** @public */
 export type NativeFormElement =
   | HTMLInputElement

@@ -14,7 +14,8 @@ type RuntimePublicKey =
   | "getFieldValue"
   | "getFieldState"
   | "getFieldStates"
-  | "getFormState";
+  | "getFormState"
+  | "setOptions";
 
 type RuntimeInstanceKeys = keyof Runtime;
 type RuntimeApiKeys = keyof RuntimePublicApi;

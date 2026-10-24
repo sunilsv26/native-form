@@ -1621,6 +1621,119 @@ describe("Runtime", () => {
       expect(runtime.getFieldValue("email")).toBeUndefined();
     });
   });
+
+  describe("ValidationMode lifecycle (onChange, onBlur, onSubmit, onTouched, all)", () => {
+    function createValidationForm() {
+      return createForm('<input name="email" value="" />');
+    }
+
+    const validator = {
+      validate(values: any) {
+        const email = String(values.email ?? "");
+        if (!email.includes("@")) {
+          return { success: false, issues: [{ name: "email", message: "Invalid email" }] };
+        }
+        return { success: true, values: { email } };
+      },
+    };
+
+    it("validates on input by default (mode: onChange)", async () => {
+      const form = createValidationForm();
+      const runtime = new Runtime({ validator, mode: "onChange" });
+      runtime.mount(form);
+
+      const input = form.querySelector("input")!;
+      input.value = "invalid";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      await Promise.resolve();
+
+      expect(runtime.getFormState().errors.email).toBe("Invalid email");
+    });
+
+    it("does not validate on input in onBlur mode, but validates on blur", async () => {
+      const form = createValidationForm();
+      const runtime = new Runtime({ validator, mode: "onBlur" });
+      runtime.mount(form);
+
+      const input = form.querySelector("input")!;
+      input.value = "invalid";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      await Promise.resolve();
+
+      // Error should NOT appear yet
+      expect(runtime.getFormState().errors.email).toBeUndefined();
+
+      // Blur the input
+      input.dispatchEvent(new Event("blur", { bubbles: true }));
+      await Promise.resolve();
+
+      // Error should appear on blur
+      expect(runtime.getFormState().errors.email).toBe("Invalid email");
+    });
+
+    it("does not validate on input or blur in onSubmit mode, but validates on submit", async () => {
+      const form = createValidationForm();
+      const runtime = new Runtime({ validator, mode: "onSubmit" });
+      runtime.mount(form);
+
+      const input = form.querySelector("input")!;
+      input.value = "invalid";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("blur", { bubbles: true }));
+      await Promise.resolve();
+
+      // Error should NOT appear yet
+      expect(runtime.getFormState().errors.email).toBeUndefined();
+
+      // Submit form
+      await runtime.submit();
+      expect(runtime.getFormState().errors.email).toBe("Invalid email");
+    });
+
+    it("validates on blur first in onTouched mode, then validates live on input", async () => {
+      const form = createValidationForm();
+      const runtime = new Runtime({ validator, mode: "onTouched" });
+      runtime.mount(form);
+
+      const input = form.querySelector("input")!;
+      input.value = "invalid";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      await Promise.resolve();
+
+      // Untouched: no error on first keystrokes
+      expect(runtime.getFormState().errors.email).toBeUndefined();
+
+      // Blur field to mark it touched
+      input.dispatchEvent(new Event("blur", { bubbles: true }));
+      await Promise.resolve();
+      expect(runtime.getFormState().errors.email).toBe("Invalid email");
+
+      // Now type valid email: should validate live because it is touched
+      input.value = "valid@example.com";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      await Promise.resolve();
+      expect(runtime.getFormState().errors.email).toBeUndefined();
+    });
+
+    it("allows dynamic mode change via setOptions", async () => {
+      const form = createValidationForm();
+      const runtime = new Runtime({ validator, mode: "onSubmit" });
+      runtime.mount(form);
+
+      const input = form.querySelector("input")!;
+      input.value = "invalid";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      await Promise.resolve();
+      expect(runtime.getFormState().errors.email).toBeUndefined();
+
+      // Change to onChange mode dynamically
+      runtime.setOptions({ mode: "onChange" });
+      input.value = "still-invalid";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      await Promise.resolve();
+      expect(runtime.getFormState().errors.email).toBe("Invalid email");
+    });
+  });
 });
 
 function createForm(markup: string): HTMLFormElement {

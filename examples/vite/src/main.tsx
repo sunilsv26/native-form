@@ -1,6 +1,6 @@
 import React, { useId, useMemo, useRef, useState } from "react";
 import ReactDOM from "react-dom/client";
-import { arrayItemPath, formPath } from "@native-form/core";
+import { arrayItemPath, formPath, type ValidationMode } from "@native-form/core";
 import {
   useField,
   useForm,
@@ -284,6 +284,7 @@ function LiveTelemetry({ form }: { form: UseFormResult }) {
 
 export function App() {
   const [adapterType, setAdapterType] = useState<"zod" | "yup">("zod");
+  const [validationMode, setValidationMode] = useState<ValidationMode>("onChange");
   const [teammateIds, setTeammateIds] = useState<number[]>([1]);
 
   const appRenders = useRef(0);
@@ -298,6 +299,7 @@ export function App() {
   // subscribe: false ensures the App component does NOT re-render on input keystrokes
   const form = useForm({
     schema,
+    mode: validationMode,
     subscribe: false,
     onSubmit: (values) => {
       console.log("SUBMIT SUCCESS:", values);
@@ -337,44 +339,98 @@ export function App() {
         </p>
       </div>
 
-      {/* Adapter selector & App render counter */}
+      {/* Configuration card: Adapter & Validation Mode */}
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "10px 14px",
+          flexDirection: "column",
+          gap: "10px",
+          padding: "12px 14px",
           background: "#f1f5f9",
           borderRadius: "8px",
           marginBottom: "16px",
           fontSize: "13px",
         }}
       >
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <span style={{ fontWeight: 600, color: "#334155" }}>Adapter:</span>
-          <label style={{ cursor: "pointer", display: "flex", gap: "4px" }}>
-            <input
-              type="radio"
-              name="adapter"
-              checked={adapterType === "zod"}
-              onChange={() => setAdapterType("zod")}
-            />
-            Zod
-          </label>
-          <label style={{ cursor: "pointer", display: "flex", gap: "4px" }}>
-            <input
-              type="radio"
-              name="adapter"
-              checked={adapterType === "yup"}
-              onChange={() => setAdapterType("yup")}
-            />
-            Yup
-          </label>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          {/* Adapter selector */}
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <span style={{ fontWeight: 600, color: "#334155" }}>Adapter:</span>
+            <label style={{ cursor: "pointer", display: "flex", gap: "4px" }}>
+              <input
+                type="radio"
+                name="adapter"
+                checked={adapterType === "zod"}
+                onChange={() => setAdapterType("zod")}
+              />
+              Zod
+            </label>
+            <label style={{ cursor: "pointer", display: "flex", gap: "4px" }}>
+              <input
+                type="radio"
+                name="adapter"
+                checked={adapterType === "yup"}
+                onChange={() => setAdapterType("yup")}
+              />
+              Yup
+            </label>
+          </div>
+
+          <span style={{ color: "#475569", fontWeight: 500 }}>
+            Parent Form Renders: <strong>{appRenders.current}</strong>
+          </span>
         </div>
 
-        <span style={{ color: "#475569", fontWeight: 500 }}>
-          Parent Form Renders: <strong>{appRenders.current}</strong>
-        </span>
+        {/* Validation Mode selector */}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "10px",
+            alignItems: "center",
+            paddingTop: "8px",
+            borderTop: "1px solid #e2e8f0",
+          }}
+        >
+          <span style={{ fontWeight: 600, color: "#334155" }}>Validation Mode:</span>
+          {(["onChange", "onBlur", "onSubmit", "onTouched", "all"] as const).map(
+            (m) => (
+              <label
+                key={m}
+                style={{
+                  cursor: "pointer",
+                  display: "flex",
+                  gap: "4px",
+                  color: validationMode === m ? "#2563eb" : "#475569",
+                  fontWeight: validationMode === m ? 600 : 400,
+                }}
+              >
+                <input
+                  type="radio"
+                  name="validationMode"
+                  checked={validationMode === m}
+                  onChange={() => setValidationMode(m)}
+                />
+                {m}
+              </label>
+            ),
+          )}
+        </div>
+
+        {/* Helpful explanation of current mode */}
+        <div style={{ fontSize: "11px", color: "#64748b", fontStyle: "italic" }}>
+          {validationMode === "onChange" && "• Validates immediately on each keystroke as you type."}
+          {validationMode === "onBlur" && "• Validates only when clicking or tabbing away from an input (blur)."}
+          {validationMode === "onSubmit" && "• Suppresses errors until clicking the 'Submit Form' button."}
+          {validationMode === "onTouched" && "• Waits for first blur, then validates live on each subsequent keystroke."}
+          {validationMode === "all" && "• Validates on both blur and keystroke events."}
+        </div>
       </div>
 
       <form

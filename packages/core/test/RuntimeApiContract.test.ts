@@ -19,6 +19,7 @@ describe("Runtime public API contract", () => {
     expect(typeof runtime.getFieldState).toBe("function");
     expect(typeof runtime.getFieldStates).toBe("function");
     expect(typeof runtime.getFormState).toBe("function");
+    expect(typeof runtime.setOptions).toBe("function");
     expect(Array.isArray(runtime.fields)).toBe(true);
   });
 

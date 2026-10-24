@@ -20,6 +20,7 @@ import {
   NativeFormValues,
   RuntimeEvent,
   RuntimeListener,
+  ValidationMode,
 } from "../shared/types";
 import {
   SchemaLike,
@@ -32,6 +33,7 @@ import {
 export interface RuntimeOptions<
   TValues extends NativeFormValues = NativeFormValues,
 > {
+  mode?: ValidationMode;
   schema?: SchemaLike<TValues>;
   validator?: Validator<TValues>;
   pipeline?: ValidationPipeline<TValues>;
@@ -71,6 +73,7 @@ export interface RuntimePublicApi<
   getFieldState(name: string): FieldState | undefined;
   getFieldStates(): FieldState[];
   getFormState(): RuntimeFormState;
+  setOptions(options: Partial<RuntimeOptions<TValues>>): void;
 }
 
 type FieldRuntimeEvent = Extract<RuntimeEvent, { type: `field:${string}` }>;
@@ -108,7 +111,7 @@ export class Runtime<
 
   private errors: Record<string, string> = {};
 
-  private readonly pipeline: ValidationPipeline<TValues>;
+  private pipeline: ValidationPipeline<TValues>;
 
   constructor(private readonly options: RuntimeOptions<TValues> = {}) {
     this.pipeline =
@@ -362,21 +365,15 @@ export class Runtime<
     const { node, values, value } = snapshot;
     node.handleInput(value);
 
-    void this.runFieldValidation(node, values).then((validation) => {
-      const isStaleValidation =
-        this.validationController !== undefined &&
-        validation.signal !== this.validationController.signal;
+    const mode = this.options.mode ?? "onChange";
+    const shouldValidate =
+      mode === "onChange" ||
+      mode === "all" ||
+      (mode === "onTouched" && node.isTouched);
 
-      if (
-        validation.aborted ||
-        isStaleValidation ||
-        validation.result.success
-      ) {
-        return;
-      }
-
-      this.options.onInvalid?.(this.errors, values);
-    });
+    if (shouldValidate) {
+      this.triggerFieldValidation(node, values);
+    }
 
     this.emitFieldEvent({
       type: "field:input",
@@ -404,21 +401,15 @@ export class Runtime<
     const { node, values, value } = snapshot;
     node.handleChange(value);
 
-    void this.runFieldValidation(node, values).then((validation) => {
-      const isStaleValidation =
-        this.validationController !== undefined &&
-        validation.signal !== this.validationController.signal;
+    const mode = this.options.mode ?? "onChange";
+    const shouldValidate =
+      mode === "onChange" ||
+      mode === "all" ||
+      (mode === "onTouched" && node.isTouched);
 
-      if (
-        validation.aborted ||
-        isStaleValidation ||
-        validation.result.success
-      ) {
-        return;
-      }
-
-      this.options.onInvalid?.(this.errors, values);
-    });
+    if (shouldValidate) {
+      this.triggerFieldValidation(node, values);
+    }
 
     this.emitFieldEvent({
       type: "field:change",
@@ -446,21 +437,15 @@ export class Runtime<
     const { node, values, value } = snapshot;
     node.updateValue(value);
 
-    void this.runFieldValidation(node, values).then((validation) => {
-      const isStaleValidation =
-        this.validationController !== undefined &&
-        validation.signal !== this.validationController.signal;
+    const mode = this.options.mode ?? "onChange";
+    const shouldValidate =
+      mode === "onChange" ||
+      mode === "all" ||
+      (mode === "onTouched" && node.isTouched);
 
-      if (
-        validation.aborted ||
-        isStaleValidation ||
-        validation.result.success
-      ) {
-        return;
-      }
-
-      this.options.onInvalid?.(this.errors, values);
-    });
+    if (shouldValidate) {
+      this.triggerFieldValidation(node, values);
+    }
 
     this.emitFieldEvent({
       type: "field:update",
@@ -490,6 +475,27 @@ export class Runtime<
     return { node, values, value };
   }
 
+  private triggerFieldValidation(
+    node: FieldNode,
+    values: NativeFormFlatValues,
+  ): void {
+    void this.runFieldValidation(node, values).then((validation) => {
+      const isStaleValidation =
+        this.validationController !== undefined &&
+        validation.signal !== this.validationController.signal;
+
+      if (
+        validation.aborted ||
+        isStaleValidation ||
+        validation.result.success
+      ) {
+        return;
+      }
+
+      this.options.onInvalid?.(this.errors, values);
+    });
+  }
+
   private handleFieldBlur = (event: Event) => {
     const element = toNativeFormElement(event.target);
 
@@ -502,6 +508,14 @@ export class Runtime<
 
     const node = this.registry.get(element.name);
     node?.handleBlur();
+
+    const mode = this.options.mode ?? "onChange";
+    const shouldValidate =
+      mode === "onBlur" || mode === "onTouched" || mode === "all";
+
+    if (shouldValidate && node) {
+      this.triggerFieldValidation(node, values);
+    }
 
     this.emitFieldEvent({
       type: "field:blur",
@@ -602,6 +616,22 @@ export class Runtime<
 
   getFieldStates() {
     return this.registry.values().map((f) => f.getState());
+  }
+
+  setOptions(options: Partial<RuntimeOptions<TValues>>): void {
+    Object.assign(this.options, options);
+    if (
+      options.schema !== undefined ||
+      options.validator !== undefined ||
+      options.pipeline !== undefined
+    ) {
+      this.pipeline =
+        options.pipeline ??
+        createValidationPipeline({
+          schema: options.schema,
+          validator: options.validator,
+        });
+    }
   }
 
   getFormState(): RuntimeFormState {

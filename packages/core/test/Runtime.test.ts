@@ -1733,6 +1733,54 @@ describe("Runtime", () => {
       await Promise.resolve();
       expect(runtime.getFormState().errors.email).toBe("Invalid email");
     });
+
+    it("validates only the active field on keystroke and does not display premature errors on untouched fields", async () => {
+      const form = createForm(`
+        <input name="email" value="" />
+        <input name="password" value="" />
+        <input name="confirmPassword" value="" />
+      `);
+
+      const multiValidator = {
+        validate(values: any) {
+          const issues = [];
+          if (!String(values.email ?? "").includes("@")) {
+            issues.push({ name: "email", message: "Email required" });
+          }
+          if (String(values.password ?? "").length < 8) {
+            issues.push({ name: "password", message: "Password too short" });
+          }
+          if (values.password !== values.confirmPassword) {
+            issues.push({ name: "confirmPassword", message: "Passwords must match" });
+          }
+          return issues.length === 0
+            ? { success: true, values }
+            : { success: false, issues };
+        },
+      };
+
+      const runtime = new Runtime({ validator: multiValidator, mode: "onChange" });
+      runtime.mount(form);
+
+      const emailInput = form.elements.namedItem("email") as HTMLInputElement;
+
+      // Type invalid email
+      emailInput.value = "notanemail";
+      emailInput.dispatchEvent(new Event("input", { bubbles: true }));
+      await Promise.resolve();
+
+      // Email error should show
+      expect(runtime.getFormState().errors.email).toBe("Email required");
+
+      // Password and confirmPassword are untouched, so they MUST NOT have errors
+      expect(runtime.getFormState().errors.password).toBeUndefined();
+      expect(runtime.getFormState().errors.confirmPassword).toBeUndefined();
+
+      // Submit form: now ALL invalid fields should be validated and show errors
+      await runtime.submit();
+      expect(runtime.getFormState().errors.email).toBe("Email required");
+      expect(runtime.getFormState().errors.password).toBe("Password too short");
+    });
   });
 });
 

@@ -547,12 +547,6 @@ export class Runtime<
       values,
     });
 
-    this.errors = {};
-    for (const f of this.registry.values()) {
-      f.setError(this.errors[f.name]);
-    }
-    this.applyNativeErrors();
-
     const context = {
       form: this.form,
       signal: controller.signal,
@@ -567,7 +561,7 @@ export class Runtime<
       : await this.pipeline.validate(values, context);
 
     if (!controller.signal.aborted) {
-      this.applyValidationResult(result, values);
+      this.applyFieldValidationResult(field, result, values);
 
       if (this.validationController === controller) {
         this.validating = false;
@@ -790,6 +784,55 @@ export class Runtime<
 
     this.syncFields();
   };
+
+  private applyFieldValidationResult(
+    targetField: FieldNode,
+    result: ValidationResult<TValues>,
+    values: NativeFormFlatValues,
+  ): void {
+    const issueMap = result.success ? {} : issuesToErrors(result.issues);
+    const targetName = targetField.name;
+
+    // 1. Update the active field being edited
+    const targetIssue = issueMap[targetName];
+    if (targetIssue) {
+      this.errors[targetName] = targetIssue;
+      targetField.setError(targetIssue);
+    } else {
+      delete this.errors[targetName];
+      targetField.setError(undefined);
+    }
+
+    // 2. For other fields in the form: only update error state if they were
+    // already touched or already had an error (e.g. cross-field validation rules).
+    // Untouched fields must NOT show premature errors while typing elsewhere.
+    for (const otherField of this.registry.values()) {
+      if (otherField === targetField) continue;
+      const name = otherField.name;
+      const hadError = Boolean(this.errors[name]);
+      const isTouched = otherField.isTouched;
+
+      if (hadError || isTouched) {
+        const issue = issueMap[name];
+        if (issue) {
+          this.errors[name] = issue;
+          otherField.setError(issue);
+        } else {
+          delete this.errors[name];
+          otherField.setError(undefined);
+        }
+      }
+    }
+
+    this.fieldErrorRenderer.normalizeFields(this.registry.values());
+    this.applyNativeErrors();
+
+    this.emitValidationEvent({
+      type: "validation:end",
+      errors: { ...this.errors },
+      values,
+    });
+  }
 
   private applyValidationResult(
     result: ValidationResult<TValues>,

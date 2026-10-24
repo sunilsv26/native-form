@@ -1,6 +1,7 @@
 import { NativeFormElement, NativeFormValue } from "../shared/types";
 import { FieldState } from "./FieldState";
 
+/** @public */
 export class FieldNode {
   constructor(public readonly element: NativeFormElement) {}
   private dirty = false;

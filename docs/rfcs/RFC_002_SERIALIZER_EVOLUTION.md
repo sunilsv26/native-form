@@ -347,7 +347,8 @@ getFieldValue(name: string): NativeFormValue | undefined {
 
 - [x] Tradeoff analysis completed.
 - [x] Dual-mode hybrid architecture selected.
-- [x] Fast-path single-field access specified.
-- [ ] Implement `serializeFields` in `packages/core/src/serialization/Serializer.ts` for v0.7.0.
-- [ ] Add unit test suite in `packages/core/test/Serializer.test.ts`.
+- [x] Fast-path single-field access specified and implemented.
+- [x] Implement `serializeFields` in `packages/core/src/serialization/Serializer.ts`.
+- [x] Expose `serializeFields` on `RuntimePublicApi` and `Runtime`.
+- [x] Add comprehensive unit test suite in `packages/core/test/Serializer.test.ts` and `packages/core/test/Runtime.test.ts`.
 

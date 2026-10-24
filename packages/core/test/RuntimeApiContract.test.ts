@@ -11,6 +11,7 @@ describe("Runtime public API contract", () => {
     expect(typeof runtime.mount).toBe("function");
     expect(typeof runtime.unmount).toBe("function");
     expect(typeof runtime.serialize).toBe("function");
+    expect(typeof runtime.serializeFields).toBe("function");
     expect(typeof runtime.validate).toBe("function");
     expect(typeof runtime.submit).toBe("function");
     expect(typeof runtime.subscribe).toBe("function");

@@ -1,4 +1,9 @@
 export {
+  Serializer,
+  type SerializeFieldsOptions,
+} from "./serialization/Serializer";
+export { FieldNode } from "./field/FieldNode";
+export {
   Runtime,
   type RuntimeFormState,
   type RuntimeOptions,

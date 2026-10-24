@@ -7,7 +7,7 @@ import {
   isRuntimeMutationRelevant,
   runtimeMutationObserverOptions,
 } from "./RuntimeMutationPolicy";
-import { Serializer } from "../serialization/Serializer";
+import { Serializer, SerializeFieldsOptions } from "../serialization/Serializer";
 import {
   createValidationPipeline,
   ValidationFieldMeta,
@@ -65,6 +65,7 @@ export interface RuntimePublicApi<
   mount(form: HTMLFormElement): void;
   unmount(): void;
   serialize(): NativeFormFlatValues;
+  serializeFields(options?: SerializeFieldsOptions): NativeFormValues;
   validate(): Promise<ValidationResult<TValues>>;
   submit(event?: SubmitEvent): Promise<ValidationResult<TValues>>;
   subscribe(listener: RuntimeListener): () => void;
@@ -188,6 +189,25 @@ export class Runtime<
     }
 
     return this.serializer.serialize(this.form);
+  }
+
+  serializeFields(options?: SerializeFieldsOptions): NativeFormValues {
+    if (this.form) {
+      const nodes: FieldNode[] = [];
+      const nodeMap = new Map(this.registry.values().map((n) => [n.element, n]));
+      for (const control of Array.from(this.form.elements)) {
+        if (
+          (control instanceof HTMLInputElement ||
+            control instanceof HTMLSelectElement ||
+            control instanceof HTMLTextAreaElement) &&
+          control.name
+        ) {
+          nodes.push(nodeMap.get(control) ?? new FieldNode(control));
+        }
+      }
+      return this.serializer.serializeFields(nodes, options);
+    }
+    return this.serializer.serializeFields(this.registry.values(), options);
   }
 
   get fields(): FieldState[] {

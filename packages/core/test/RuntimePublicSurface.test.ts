@@ -7,6 +7,7 @@ type RuntimePublicKey =
   | "mount"
   | "unmount"
   | "serialize"
+  | "serializeFields"
   | "validate"
   | "submit"
   | "subscribe"

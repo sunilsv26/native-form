@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 
+import { FieldNode } from "../src/field/FieldNode";
 import { Serializer } from "../src/Serializer";
 
 describe("Serializer", () => {
@@ -110,6 +111,235 @@ describe("Serializer", () => {
     expect(serializer.serialize(form)).toEqual({
       tags: ["a", "b"],
       email: "a@example.com",
+    });
+  });
+
+  describe("serializeFields", () => {
+    it("extracts typed values for numbers and standalone boolean checkboxes", () => {
+      const ageInput = document.createElement("input");
+      ageInput.type = "number";
+      ageInput.name = "age";
+      ageInput.value = "28";
+
+      const termsInput = document.createElement("input");
+      termsInput.type = "checkbox";
+      termsInput.name = "terms";
+      termsInput.checked = true;
+
+      const uncheckedTerms = document.createElement("input");
+      uncheckedTerms.type = "checkbox";
+      uncheckedTerms.name = "newsletter";
+      uncheckedTerms.checked = false;
+
+      const fields = [
+        new FieldNode(ageInput),
+        new FieldNode(termsInput),
+        new FieldNode(uncheckedTerms),
+      ];
+
+      const serializer = new Serializer();
+      expect(serializer.serializeFields(fields)).toEqual({
+        age: 28,
+        terms: true,
+        newsletter: false,
+      });
+    });
+
+    it("respects coerceUncheckedCheckboxes: false by omitting unchecked checkboxes", () => {
+      const termsInput = document.createElement("input");
+      termsInput.type = "checkbox";
+      termsInput.name = "terms";
+      termsInput.checked = false;
+
+      const fields = [new FieldNode(termsInput)];
+      const serializer = new Serializer();
+
+      expect(
+        serializer.serializeFields(fields, {
+          coerceUncheckedCheckboxes: false,
+        }),
+      ).toEqual({});
+    });
+
+    it("extracts raw string values when valueMode is 'raw'", () => {
+      const ageInput = document.createElement("input");
+      ageInput.type = "number";
+      ageInput.name = "age";
+      ageInput.value = "42";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.name = "active";
+      checkbox.value = "yes";
+      checkbox.checked = true;
+
+      const fields = [new FieldNode(ageInput), new FieldNode(checkbox)];
+      const serializer = new Serializer();
+
+      expect(serializer.serializeFields(fields, { valueMode: "raw" })).toEqual({
+        age: "42",
+        active: "yes",
+      });
+    });
+
+    it("handles grouped checkboxes with explicit values", () => {
+      const serializer = new Serializer();
+
+      const createRoles = (checkedStates: boolean[]) => {
+        const roles = ["admin", "viewer", "editor"];
+        return roles.map((role, i) => {
+          const input = document.createElement("input");
+          input.type = "checkbox";
+          input.name = "roles";
+          input.value = role;
+          input.checked = checkedStates[i];
+          return new FieldNode(input);
+        });
+      };
+
+      // None checked -> empty array []
+      expect(
+        serializer.serializeFields(createRoles([false, false, false])),
+      ).toEqual({
+        roles: [],
+      });
+
+      // Multiple checked -> ["admin", "editor"]
+      expect(
+        serializer.serializeFields(createRoles([true, false, true])),
+      ).toEqual({
+        roles: ["admin", "editor"],
+      });
+
+      // First one checked only -> ["admin"]
+      expect(
+        serializer.serializeFields(createRoles([true, false, false])),
+      ).toEqual({
+        roles: ["admin"],
+      });
+
+      // Second one checked only -> ["viewer"]
+      expect(
+        serializer.serializeFields(createRoles([false, true, false])),
+      ).toEqual({
+        roles: ["viewer"],
+      });
+    });
+
+    it("resolves radio button groups correctly", () => {
+      const serializer = new Serializer();
+
+      const radio1 = document.createElement("input");
+      radio1.type = "radio";
+      radio1.name = "plan";
+      radio1.value = "free";
+
+      const radio2 = document.createElement("input");
+      radio2.type = "radio";
+      radio2.name = "plan";
+      radio2.value = "pro";
+      radio2.checked = true;
+
+      expect(
+        serializer.serializeFields([
+          new FieldNode(radio1),
+          new FieldNode(radio2),
+        ]),
+      ).toEqual({
+        plan: "pro",
+      });
+
+      // When no radio in group is checked -> undefined
+      radio2.checked = false;
+      expect(
+        serializer.serializeFields([
+          new FieldNode(radio1),
+          new FieldNode(radio2),
+        ]),
+      ).toEqual({
+        plan: undefined,
+      });
+    });
+
+    it("omits disabled controls by default and includes them when includeDisabled: true", () => {
+      const enabled = document.createElement("input");
+      enabled.name = "title";
+      enabled.value = "Engineer";
+
+      const disabled = document.createElement("input");
+      disabled.name = "salary";
+      disabled.value = "100000";
+      disabled.disabled = true;
+
+      const fields = [new FieldNode(enabled), new FieldNode(disabled)];
+      const serializer = new Serializer();
+
+      expect(serializer.serializeFields(fields)).toEqual({
+        title: "Engineer",
+      });
+
+      expect(
+        serializer.serializeFields(fields, { includeDisabled: true }),
+      ).toEqual({
+        title: "Engineer",
+        salary: "100000",
+      });
+    });
+
+    it("supports custom serializers for tag names or input types", () => {
+      const dateInput = document.createElement("input");
+      dateInput.type = "date";
+      dateInput.name = "birthDate";
+      dateInput.value = "2000-01-01";
+
+      const select = document.createElement("select");
+      select.name = "rating";
+      const option = document.createElement("option");
+      option.value = "5";
+      option.selected = true;
+      select.append(option);
+
+      const fields = [new FieldNode(dateInput), new FieldNode(select)];
+      const serializer = new Serializer();
+
+      const result = serializer.serializeFields(fields, {
+        customSerializers: {
+          date: (el) => new Date((el as HTMLInputElement).value).getFullYear(),
+          select: (el) => Number((el as HTMLSelectElement).value),
+        },
+      });
+
+      expect(result).toEqual({
+        birthDate: 2000,
+        rating: 5,
+      });
+    });
+
+    it("serializes select-multiple as an array of values", () => {
+      const select = document.createElement("select");
+      select.name = "colors";
+      select.multiple = true;
+
+      const red = document.createElement("option");
+      red.value = "red";
+      red.selected = true;
+
+      const blue = document.createElement("option");
+      blue.value = "blue";
+      blue.selected = true;
+
+      const green = document.createElement("option");
+      green.value = "green";
+      green.selected = false;
+
+      select.append(red, blue, green);
+
+      const fields = [new FieldNode(select)];
+      const serializer = new Serializer();
+
+      expect(serializer.serializeFields(fields)).toEqual({
+        colors: ["red", "blue"],
+      });
     });
   });
 });

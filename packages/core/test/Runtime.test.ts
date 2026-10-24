@@ -1782,6 +1782,52 @@ describe("Runtime", () => {
       expect(runtime.getFormState().errors.password).toBe("Password too short");
     });
   });
+
+  describe("serializeFields()", () => {
+    it("serializes form fields with typed values and coerced booleans", () => {
+      const form = createForm(`
+        <input type="number" name="age" value="30" />
+        <input type="checkbox" name="terms" checked />
+        <input type="checkbox" name="newsletter" />
+        <input type="radio" name="plan" value="basic" />
+        <input type="radio" name="plan" value="pro" checked />
+      `);
+
+      const runtime = new Runtime();
+      runtime.mount(form);
+
+      expect(runtime.serializeFields()).toEqual({
+        age: 30,
+        terms: true,
+        newsletter: false,
+        plan: "pro",
+      });
+    });
+
+    it("respects custom serializers passed to runtime.serializeFields()", () => {
+      const form = createForm(`
+        <input type="text" name="tags" value="alpha,beta,gamma" />
+      `);
+
+      const runtime = new Runtime();
+      runtime.mount(form);
+
+      expect(
+        runtime.serializeFields({
+          customSerializers: {
+            text: (el) => (el as HTMLInputElement).value.split(","),
+          },
+        }),
+      ).toEqual({
+        tags: ["alpha", "beta", "gamma"],
+      });
+    });
+
+    it("returns empty object when unmounted", () => {
+      const runtime = new Runtime();
+      expect(runtime.serializeFields()).toEqual({});
+    });
+  });
 });
 
 function createForm(markup: string): HTMLFormElement {

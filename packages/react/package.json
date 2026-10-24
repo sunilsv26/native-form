@@ -46,7 +46,9 @@
     "zod": "^4.4.3",
     "@native-form/zod": "workspace:*",
     "yup": "^1.0.2",
-    "@native-form/yup": "workspace:*"
+    "@native-form/yup": "workspace:*",
+    "valibot": "^1.5.0",
+    "@native-form/valibot": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",

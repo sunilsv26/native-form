@@ -478,6 +478,32 @@ Acceptance criteria:
 - Consumers can subscribe to targeted state slices with deterministic updates.
 - No registration or controller-style API introduced.
 
+### NF-019 Valibot adapter MVP
+
+- Type: feature
+- Priority: p1
+- Area: adapters
+- Milestone: v0.5
+- Estimate: 2-3 days
+- Dependencies: NF-015
+- Status: Completed
+
+Scope:
+
+- Add `@native-form/valibot` adapter package implementing `valibotResolver`.
+- Support sync and async Valibot schemas via `safeParseAsync`.
+- Map dotted and indexed paths to nested structures.
+- Pass full `@native-form/adapter-contracts` test matrix.
+- Pass React end-to-end form validation tests.
+
+Implementation files:
+
+- packages/valibot/src/index.ts
+- packages/valibot/test/public-api.test.ts
+- packages/valibot/test/valibotResolver.test.ts
+- packages/valibot/test/adapter.contract.test.ts
+- packages/react/test/e2e.valibot.test.tsx
+
 ## Suggested Sprint Order (v0.1)
 
 - Sprint 1: NF-001, NF-003

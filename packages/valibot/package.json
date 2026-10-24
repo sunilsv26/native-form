@@ -1,0 +1,47 @@
+{
+  "name": "@native-form/valibot",
+  "version": "0.5.0-rc.1",
+  "description": "Valibot schema validation adapter for Native Form.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sunilsv26/native-form.git",
+    "directory": "packages/valibot"
+  },
+  "keywords": [
+    "valibot",
+    "validation",
+    "schema",
+    "native-form"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@native-form/core": "workspace:*",
+    "valibot": "^1.5.0"
+  },
+  "devDependencies": {
+    "@native-form/adapter-contracts": "workspace:*",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
+

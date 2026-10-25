@@ -11,6 +11,7 @@ React hooks and components for Native Form — native HTML-first forms with zero
 
 ## Features
 
+- **Lightweight (~9.1 KB gzip standalone)**: Zero external runtime dependencies (only peer dependency on React).
 - **No `register()` Boilerplate**: Native `<input>`, `<select>`, and `<textarea>` controls just work via standard `name` attributes.
 - **Minimal Re-renders**: Uncontrolled DOM-first inputs mean typing never re-renders your entire form component tree.
 - **Granular Subscriptions (`useWatch`)**: Re-render only the specific components that need to react to field changes or validity.

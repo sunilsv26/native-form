@@ -11,6 +11,7 @@ Framework-agnostic, zero-registration native HTML-first form runtime and validat
 
 ## Features
 
+- **Ultralight (~9.6 KB gzip)**: Zero third-party runtime dependencies. Built entirely on standard browser APIs (`FormData`, `MutationObserver`).
 - **Zero Manual Registration**: Form controls are discovered automatically from the DOM via their standard `name` attributes.
 - **Fast MutationObserver Sync**: Automatically detects dynamic field additions, removals, and DOM order changes without manual bindings.
 - **Typed & Native Serialization**: Extract raw string/FormData values or automatically coerce controls to typed numbers, booleans, and arrays.

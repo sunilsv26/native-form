@@ -5,6 +5,8 @@ Yup schema validation adapter for Native Form.
 [![npm version](https://img.shields.io/npm/v/@native-form/yup.svg)](https://www.npmjs.com/package/@native-form/yup)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
+> **Microscopic footprint**: Adds only **519 bytes (gzip)** to your application bundle with zero runtime dependencies.
+
 ## Installation
 
 ```bash

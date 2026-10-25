@@ -26,15 +26,34 @@ Native Form is architected into lightweight, decoupled modules so you can use it
    └─────────────────────┘ └───────────────┘ └────────────────────┘
 ```
 
-| Platform / Framework | Package | Quick Install |
-| :--- | :--- | :--- |
-| **React (18 & 19, Next.js, Remix)** | [`@native-form/react`](packages/react/README.md) | `npm i @native-form/react @native-form/core` |
-| **Vanilla JS / TypeScript** | [`@native-form/core`](packages/core/README.md) | `npm i @native-form/core` |
-| **Vue.js (Vue 3 `<script setup>`)** | [`@native-form/core`](packages/core/README.md#2-vuejs-vue-3-script-setup) | `npm i @native-form/core` |
-| **Svelte (Svelte 4 & 5)** | [`@native-form/core`](packages/core/README.md#3-svelte-svelte-4--5) | `npm i @native-form/core` |
-| **Zod Schema Validation** | [`@native-form/zod`](packages/zod/README.md) | `npm i @native-form/zod zod` |
-| **Yup Schema Validation** | [`@native-form/yup`](packages/yup/README.md) | `npm i @native-form/yup yup` |
-| **Valibot Schema Validation** | [`@native-form/valibot`](packages/valibot/README.md) | `npm i @native-form/valibot valibot` |
+| Platform / Framework | Package | Quick Install | Minified (Gzip) |
+| :--- | :--- | :--- | :--- |
+| **Vanilla JS / TypeScript** | [`@native-form/core`](packages/core/README.md) | `npm i @native-form/core` | **9.6 KB** |
+| **Vue.js (Vue 3 `<script setup>`)** | [`@native-form/core`](packages/core/README.md#2-vuejs-vue-3-script-setup) | `npm i @native-form/core` | **9.6 KB** |
+| **Svelte (Svelte 4 & 5)** | [`@native-form/core`](packages/core/README.md#3-svelte-svelte-4--5) | `npm i @native-form/core` | **9.6 KB** |
+| **React (18 & 19, Next.js, Remix)** | [`@native-form/react`](packages/react/README.md) | `npm i @native-form/react @native-form/core` | **18.1 KB** (incl. core) |
+| **Zod Schema Validation** | [`@native-form/zod`](packages/zod/README.md) | `npm i @native-form/zod zod` | **0.4 KB** (445 B) |
+| **Valibot Schema Validation** | [`@native-form/valibot`](packages/valibot/README.md) | `npm i @native-form/valibot valibot` | **0.4 KB** (457 B) |
+| **Yup Schema Validation** | [`@native-form/yup`](packages/yup/README.md) | `npm i @native-form/yup yup` | **0.5 KB** (519 B) |
+
+---
+
+## 📦 Bundle Size & Lightweight Footprint
+
+Native Form is engineered for speed with zero bloat. It has **zero third-party runtime dependencies**:
+
+| Package | Minified | Gzipped | Brotli | Dependencies |
+| :--- | :---: | :---: | :---: | :---: |
+| **`@native-form/core`** | 45.8 KB | **9.6 KB** | 8.4 KB | **0 (Zero)** |
+| **`@native-form/react`** (standalone) | 30.9 KB | **9.1 KB** | 8.0 KB | Peer: `react` |
+| **Full React Ecosystem** (`react` + `core`) | 76.2 KB | **18.1 KB** | 15.9 KB | Peer: `react` |
+| **`@native-form/zod`** | 0.86 KB | **0.43 KB** (445 B) | 386 B | Peer: `zod` |
+| **`@native-form/valibot`** | 0.90 KB | **0.45 KB** (457 B) | 406 B | Peer: `valibot` |
+| **`@native-form/yup`** | 1.02 KB | **0.51 KB** (519 B) | 445 B | Peer: `yup` |
+
+- **Zero dependencies**: `@native-form/core` runs purely on browser standards (`FormData`, `MutationObserver`, `EventTarget`).
+- **Fully Tree-shakeable**: Import only the hooks (`useForm`, `useField`, `useWatch`, `useWizard`) your view requires.
+- **Microscopic Schema Adapters**: Adapters add under **500 bytes** to your production bundle.
 
 ---
 

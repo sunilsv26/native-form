@@ -38,6 +38,7 @@ import type {
   ValidationIssue as ValidationIssueFlat,
   ValidationResult as ValidationResultFlat,
   Validator as ValidatorFlat,
+  AsyncFieldValidator as AsyncFieldValidatorFlat,
 } from "../src/Validation";
 import type {
   Runtime as RuntimeLayered,
@@ -53,6 +54,7 @@ import type {
   ValidationIssue as ValidationIssueLayered,
   ValidationResult as ValidationResultLayered,
   Validator as ValidatorLayered,
+  AsyncFieldValidator as AsyncFieldValidatorLayered,
 } from "../src/validation/Validation";
 import type {
   ValidationFieldMeta as ValidationFieldMetaFlat,
@@ -132,6 +134,10 @@ type ValidationResultParity = IsEqual<
   ValidationResultLayered
 >;
 type ValidatorParity = IsEqual<ValidatorFlat, ValidatorLayered>;
+type AsyncFieldValidatorParity = IsEqual<
+  AsyncFieldValidatorFlat,
+  AsyncFieldValidatorLayered
+>;
 type StandardSchemaIssueParity = IsEqual<
   StandardSchemaIssueFlat,
   StandardSchemaIssueLayered
@@ -193,6 +199,7 @@ const validationIssueParity: ValidationIssueParity = true;
 const validationContextParity: ValidationContextParity = true;
 const validationResultParity: ValidationResultParity = true;
 const validatorParity: ValidatorParity = true;
+const asyncFieldValidatorParity: AsyncFieldValidatorParity = true;
 const standardSchemaIssueParity: StandardSchemaIssueParity = true;
 const standardSchemaResultParity: StandardSchemaResultParity = true;
 const standardSchemaV1Parity: StandardSchemaV1Parity = true;
@@ -226,6 +233,7 @@ describe("Legacy shim type parity contract", () => {
     expect(validationContextParity).toBe(true);
     expect(validationResultParity).toBe(true);
     expect(validatorParity).toBe(true);
+    expect(asyncFieldValidatorParity).toBe(true);
     expect(standardSchemaIssueParity).toBe(true);
     expect(standardSchemaResultParity).toBe(true);
     expect(standardSchemaV1Parity).toBe(true);

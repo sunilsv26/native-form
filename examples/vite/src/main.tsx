@@ -117,23 +117,48 @@ function FieldStatus({
   touched,
   dirty,
   error,
+  validating,
 }: {
   label: string;
   touched: boolean;
   dirty: boolean;
   error?: string;
+  validating?: boolean;
 }) {
   return (
-    <p
+    <div
       style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
         margin: "4px 0 0",
-        fontSize: "12px",
-        color: error ? "#e11d48" : "#64748b",
       }}
     >
-      {label}: {error ? <strong>{error}</strong> : "ok"} (touched:{" "}
-      {String(touched)}, dirty: {String(dirty)})
-    </p>
+      <p
+        style={{
+          margin: 0,
+          fontSize: "12px",
+          color: error ? "#e11d48" : "#64748b",
+        }}
+      >
+        {label}: {error ? <strong>{error}</strong> : "ok"} (touched:{" "}
+        {String(touched)}, dirty: {String(dirty)})
+      </p>
+      {validating && (
+        <span
+          style={{
+            fontSize: "11px",
+            color: "#0369a1",
+            backgroundColor: "#e0f2fe",
+            padding: "1px 6px",
+            borderRadius: "4px",
+            fontWeight: 600,
+          }}
+        >
+          ⏳ Checking...
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -181,6 +206,7 @@ function InputField({
         touched={field.touched}
         dirty={field.dirty}
         error={field.error}
+        validating={field.validating}
       />
     </div>
   );
@@ -747,6 +773,17 @@ function ShowcaseView() {
     mode: validationMode,
     serializationMode,
     nesting: nestingMode,
+    debounceMs: 300,
+    asyncValidators: {
+      [USER_EMAIL]: async (val, ctx) => {
+        // Simulate 500ms network server-side check
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        if (ctx.signal.aborted) return;
+        if (val === "taken@company.com" || val === "admin@company.com") {
+          return "This email is already taken on the server";
+        }
+      },
+    },
     subscribe: false,
     onSubmit: (values) => {
       console.log("SUBMIT SUCCESS:", values);
@@ -1059,13 +1096,18 @@ function ShowcaseView() {
         noValidate
         style={{ display: "flex", flexDirection: "column", gap: "16px" }}
       >
-        <InputField
-          form={form}
-          name={USER_EMAIL}
-          label="Your Email"
-          type="email"
-          defaultValue="alex@company.com"
-        />
+        <div>
+          <InputField
+            form={form}
+            name={USER_EMAIL}
+            label="Your Email"
+            type="email"
+            defaultValue="alex@company.com"
+          />
+          <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px", display: "block" }}>
+            💡 Async Server Check (RFC 004): Type <code>taken@company.com</code> to see 300ms debounce and loading spinner.
+          </span>
+        </div>
 
         <InputField
           form={form}

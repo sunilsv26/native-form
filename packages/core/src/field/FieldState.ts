@@ -15,4 +15,6 @@ export interface FieldState {
   value: NativeFormValue | undefined;
 
   error?: string;
+
+  validating?: boolean;
 }

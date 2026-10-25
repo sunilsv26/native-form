@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type {
   ArrayItemPathInfo as ArrayItemPathInfoFromBarrel,
+  AsyncFieldValidator as AsyncFieldValidatorFromBarrel,
   FieldEvents as FieldEventsFromBarrel,
   FieldState as FieldStateFromBarrel,
   FieldPathSegment as FieldPathSegmentFromBarrel,
@@ -58,6 +59,7 @@ import type {
   RuntimePublicApi as RuntimePublicApiCanonical,
 } from "../src/runtime/Runtime";
 import type {
+  AsyncFieldValidator as AsyncFieldValidatorCanonical,
   SchemaLike as SchemaLikeCanonical,
   StandardSchemaIssue as StandardSchemaIssueCanonical,
   StandardSchemaResult as StandardSchemaResultCanonical,
@@ -158,6 +160,10 @@ type ValidationResultParity = IsEqual<
   ValidationResultCanonical
 >;
 type ValidatorParity = IsEqual<ValidatorFromBarrel, ValidatorCanonical>;
+type AsyncFieldValidatorParity = IsEqual<
+  AsyncFieldValidatorFromBarrel,
+  AsyncFieldValidatorCanonical
+>;
 type StandardSchemaIssueParity = IsEqual<
   StandardSchemaIssueFromBarrel,
   StandardSchemaIssueCanonical
@@ -220,6 +226,7 @@ const validationIssueParity: ValidationIssueParity = true;
 const validationContextParity: ValidationContextParity = true;
 const validationResultParity: ValidationResultParity = true;
 const validatorParity: ValidatorParity = true;
+const asyncFieldValidatorParity: AsyncFieldValidatorParity = true;
 const standardSchemaIssueParity: StandardSchemaIssueParity = true;
 const standardSchemaResultParity: StandardSchemaResultParity = true;
 const standardSchemaV1Parity: StandardSchemaV1Parity = true;
@@ -257,6 +264,7 @@ describe("@native-form/core public barrel type contract", () => {
     expect(validationContextParity).toBe(true);
     expect(validationResultParity).toBe(true);
     expect(validatorParity).toBe(true);
+    expect(asyncFieldValidatorParity).toBe(true);
     expect(standardSchemaIssueParity).toBe(true);
     expect(standardSchemaResultParity).toBe(true);
     expect(standardSchemaV1Parity).toBe(true);

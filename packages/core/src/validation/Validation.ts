@@ -28,6 +28,12 @@ export type ValidationResult<
     };
 
 /** @public */
+export type AsyncFieldValidator<TValue = unknown> = (
+  value: TValue,
+  context: ValidationContext,
+) => Promise<string | undefined | void>;
+
+/** @public */
 export interface Validator<
   TValues extends NativeFormValues = NativeFormValues,
 > {

@@ -12,6 +12,7 @@ export class FieldNode {
   private initialValue: NativeFormValue | undefined = undefined;
   private stateValue: NativeFormValue | undefined = undefined;
   private error?: string;
+  private validating = false;
 
   get name() {
     return this.element.name;
@@ -84,6 +85,14 @@ export class FieldNode {
     return this.mounted;
   }
 
+  get isValidating() {
+    return this.validating;
+  }
+
+  setValidating(validating: boolean) {
+    this.validating = validating;
+  }
+
   // --- New state API (replaces FieldStateStore) ---
   register(initialValue?: NativeFormValue) {
     this.mounted = true;
@@ -92,6 +101,7 @@ export class FieldNode {
     this.dirty = false;
     this.touched = false;
     this.error = undefined;
+    this.validating = false;
   }
 
   unregister() {
@@ -107,6 +117,7 @@ export class FieldNode {
       initialValue: this.initialValue,
       value: this.stateValue,
       error: this.error,
+      validating: this.validating,
     };
   }
 
@@ -130,7 +141,9 @@ export class FieldNode {
     this.dirty = false;
     this.touched = false;
     this.error = undefined;
+    this.validating = false;
   }
+
   // --- Lifecycle helpers ---
   // Called when the browser emits input on the control
   handleInput(value?: NativeFormValue) {

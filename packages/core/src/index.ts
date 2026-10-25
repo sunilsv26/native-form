@@ -38,6 +38,7 @@ export {
 
 export {
   createValidator,
+  type AsyncFieldValidator,
   type InferSchemaOutput,
   type SchemaLike,
   type StandardSchemaIssue,

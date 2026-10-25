@@ -32,7 +32,9 @@ import {
   ValidationMode,
 } from "../shared/types";
 import {
+  AsyncFieldValidator,
   SchemaLike,
+  ValidationContext,
   ValidationIssue,
   ValidationResult,
   Validator,
@@ -49,6 +51,8 @@ export interface RuntimeOptions<
   schema?: SchemaLike<TValues>;
   validator?: Validator<TValues>;
   pipeline?: ValidationPipeline<TValues>;
+  debounceMs?: number;
+  asyncValidators?: Record<string, AsyncFieldValidator>;
   onSubmit?: (values: TValues, event?: SubmitEvent) => void | Promise<void>;
   onInvalid?: (
     errors: Record<string, string>,
@@ -123,6 +127,10 @@ export class Runtime<
 
   private validationController?: AbortController;
 
+  private readonly debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+  private readonly fieldValidationControllers = new Map<string, AbortController>();
+
   private submitting = false;
 
   private validating = false;
@@ -173,6 +181,9 @@ export class Runtime<
   }
 
   unmount() {
+    this.clearDebounceTimers();
+    this.abortAllValidations();
+
     if (this.form) {
       this.form.removeEventListener("submit", this.handleSubmit);
       this.form.removeEventListener("input", this.handleFieldUpdate);
@@ -183,8 +194,6 @@ export class Runtime<
 
     this.observer?.disconnect();
     this.observer = undefined;
-    this.validationController?.abort();
-    this.validationController = undefined;
     this.fieldErrorRenderer.applyErrors(this.registry.values(), {});
     this.registry.clear();
 
@@ -198,6 +207,48 @@ export class Runtime<
     });
 
     this.listeners.clear();
+  }
+
+  private clearDebounceTimers(): void {
+    for (const timer of this.debounceTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.debounceTimers.clear();
+  }
+
+  private abortAllValidations(): void {
+    this.validationController?.abort();
+    this.validationController = undefined;
+    for (const controller of this.fieldValidationControllers.values()) {
+      controller.abort();
+    }
+    this.fieldValidationControllers.clear();
+    for (const field of this.registry.values()) {
+      field.setValidating(false);
+    }
+  }
+
+  private getAsyncValidator(name: string): AsyncFieldValidator | undefined {
+    if (!this.options.asyncValidators) {
+      return undefined;
+    }
+
+    if (this.options.asyncValidators[name]) {
+      return this.options.asyncValidators[name];
+    }
+
+    const normalized = normalizePath(name);
+    if (this.options.asyncValidators[normalized]) {
+      return this.options.asyncValidators[normalized];
+    }
+
+    for (const [key, validator] of Object.entries(this.options.asyncValidators)) {
+      if (normalizePath(key) === normalized) {
+        return validator;
+      }
+    }
+
+    return undefined;
   }
 
   serialize() {
@@ -310,6 +361,9 @@ export class Runtime<
       throw new Error("Runtime is not mounted.");
     }
 
+    this.clearDebounceTimers();
+    this.abortAllValidations();
+
     const values = this.extractCurrentValues();
     // lifecycle: mark fields as submitted/touched
     for (const field of this.registry.values()) {
@@ -338,6 +392,72 @@ export class Runtime<
       });
 
       return validation.result;
+    }
+
+    // Step 2: Two-tier validation. Execute field-level async validators on submit
+    if (
+      this.options.asyncValidators &&
+      Object.keys(this.options.asyncValidators).length > 0
+    ) {
+      const asyncIssues: ValidationIssue[] = [];
+      const flat = (
+        this.serializationMode === "typed" ? this.serialize() : values
+      ) as unknown as NativeFormFlatValues;
+
+      const promises: Promise<void>[] = [];
+      for (const [name, validator] of Object.entries(
+        this.options.asyncValidators,
+      )) {
+        const rawValue =
+          (values as Record<string, unknown>)[name] ?? flat[name];
+        const fieldNode = this.registry.get(name);
+        if (fieldNode) {
+          fieldNode.setValidating(true);
+        }
+
+        promises.push(
+          (async () => {
+            try {
+              const err = await validator(rawValue, {
+                form: this.form!,
+                signal: validation.signal,
+              });
+              if (err) {
+                asyncIssues.push({ name, message: err });
+              }
+            } catch (error) {
+              const msg =
+                error instanceof Error ? error.message : String(error);
+              asyncIssues.push({ name, message: msg });
+            } finally {
+              fieldNode?.setValidating(false);
+            }
+          })(),
+        );
+      }
+
+      await Promise.all(promises);
+
+      if (asyncIssues.length > 0) {
+        for (const issue of asyncIssues) {
+          this.errors[issue.name] = issue.message;
+          const node = this.registry.get(issue.name);
+          node?.setError(issue.message);
+        }
+        this.applyNativeErrors();
+
+        this.options.onInvalid?.(this.errors, values, event);
+        this.emitFormEvent({
+          type: "form:invalid",
+          errors: this.errors,
+          values,
+        });
+
+        return {
+          success: false,
+          issues: asyncIssues,
+        };
+      }
     }
 
     this.submitting = true;
@@ -542,22 +662,126 @@ export class Runtime<
   private triggerFieldValidation(
     node: FieldNode,
     values: NativeFormFlatValues,
+    immediate = false,
   ): void {
-    void this.runFieldValidation(node, values).then((validation) => {
+    const debounceMs = this.options.debounceMs ?? 0;
+    if (!immediate && debounceMs > 0) {
+      const existing = this.debounceTimers.get(node.name);
+      if (existing) {
+        clearTimeout(existing);
+      }
+      const timer = setTimeout(() => {
+        this.debounceTimers.delete(node.name);
+        void this.executeFieldValidation(node, values);
+      }, debounceMs);
+      this.debounceTimers.set(node.name, timer);
+    } else {
+      const existing = this.debounceTimers.get(node.name);
+      if (existing) {
+        clearTimeout(existing);
+        this.debounceTimers.delete(node.name);
+      }
+      void this.executeFieldValidation(node, values);
+    }
+  }
+
+  private async executeFieldValidation(
+    node: FieldNode,
+    values: NativeFormFlatValues,
+  ): Promise<void> {
+    const fieldName = node.name;
+
+    // Abort previous in-flight validation for this field
+    const previousController = this.fieldValidationControllers.get(fieldName);
+    if (previousController) {
+      previousController.abort();
+      this.fieldValidationControllers.delete(fieldName);
+    }
+
+    const fieldController = new AbortController();
+    this.fieldValidationControllers.set(fieldName, fieldController);
+
+    try {
+      const validation = await this.runFieldValidation(node, values);
       const isStaleValidation =
         this.validationController !== undefined &&
         validation.signal !== this.validationController.signal;
 
       if (
         validation.aborted ||
-        isStaleValidation ||
-        validation.result.success
+        fieldController.signal.aborted ||
+        isStaleValidation
       ) {
         return;
       }
 
-      this.options.onInvalid?.(this.errors, values);
-    });
+      if (!validation.result.success) {
+        this.options.onInvalid?.(this.errors, values);
+        return;
+      }
+
+      // Step 2: Two-tier async validation.
+      // If sync validation succeeded and an asyncValidator is configured for this field:
+      const asyncValidator = this.getAsyncValidator(fieldName);
+      if (asyncValidator && !fieldController.signal.aborted) {
+        node.setValidating(true);
+        this.emitFieldEvent({
+          type: "field:update",
+          field: fieldName,
+          value: values[fieldName],
+          values,
+        });
+
+        try {
+          const context: ValidationContext = {
+            form: this.form!,
+            signal: fieldController.signal,
+          };
+          const rawValue = values[fieldName];
+          const asyncError = await asyncValidator(rawValue, context);
+
+          if (!fieldController.signal.aborted) {
+            if (asyncError) {
+              this.errors[fieldName] = asyncError;
+              node.setError(asyncError);
+              this.options.onInvalid?.(this.errors, values);
+            } else if (this.errors[fieldName]) {
+              delete this.errors[fieldName];
+              node.setError(undefined);
+            }
+            this.applyNativeErrors();
+          }
+        } catch (error) {
+          if (!fieldController.signal.aborted) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            this.errors[fieldName] = message;
+            node.setError(message);
+            this.applyNativeErrors();
+            this.options.onInvalid?.(this.errors, values);
+          }
+        } finally {
+          if (!fieldController.signal.aborted) {
+            node.setValidating(false);
+            this.emitValidationEvent({
+              type: "validation:end",
+              errors: { ...this.errors },
+              values,
+            });
+            this.emitFieldEvent({
+              type: "field:update",
+              field: fieldName,
+              value: values[fieldName],
+              values,
+            });
+          }
+        }
+      }
+    } finally {
+      if (this.fieldValidationControllers.get(fieldName) === fieldController) {
+        this.fieldValidationControllers.delete(fieldName);
+      }
+    }
   }
 
   private handleFieldBlur = (event: Event) => {
@@ -574,11 +798,15 @@ export class Runtime<
     node?.handleBlur();
 
     const mode = this.options.mode ?? "onChange";
+    const hasPendingDebounce = this.debounceTimers.has(element.name);
     const shouldValidate =
-      mode === "onBlur" || mode === "onTouched" || mode === "all";
+      mode === "onBlur" ||
+      mode === "onTouched" ||
+      mode === "all" ||
+      hasPendingDebounce;
 
     if (shouldValidate && node) {
-      this.triggerFieldValidation(node, values);
+      this.triggerFieldValidation(node, values, true);
     }
 
     this.emitFieldEvent({
@@ -640,6 +868,9 @@ export class Runtime<
   }
 
   private handleReset = () => {
+    this.clearDebounceTimers();
+    this.abortAllValidations();
+
     queueMicrotask(() => {
       if (!this.form) return;
 
@@ -856,7 +1087,7 @@ export class Runtime<
       touched: fields.some((field) => field.touched),
       valid: Object.keys(this.errors).length === 0,
       submitting: this.submitting,
-      validating: this.validating,
+      validating: this.validating || fields.some((field) => field.validating),
       errors: { ...this.errors },
       fields,
       values: this.extractCurrentValues() as unknown as NativeFormFlatValues,

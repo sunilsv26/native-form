@@ -66,6 +66,7 @@ function createUntrackedFieldState(
     initialValue: undefined,
     value,
     error,
+    validating: false,
     invalid: Boolean(error),
   };
 }
@@ -107,6 +108,7 @@ function getFieldSnapshot(
   return {
     ...field,
     error,
+    validating: Boolean(field.validating),
     invalid: Boolean(error),
   };
 }

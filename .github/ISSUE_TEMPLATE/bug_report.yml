@@ -1,0 +1,46 @@
+name: Bug Report
+description: File a bug report to help us improve Native Form
+title: "fix: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting an issue! Please provide as much detail as possible.
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the Bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction Code / Sandbox
+      description: A minimal reproduction (StackBlitz, CodeSandbox, or GitHub repository).
+      placeholder: https://stackblitz.com/...
+    validations:
+      required: true
+  - type: dropdown
+    id: package
+    attributes:
+      label: Affected Package
+      options:
+        - "@native-form/core"
+        - "@native-form/react"
+        - "@native-form/zod"
+        - "@native-form/valibot"
+        - "@native-form/yup"
+        - "Other / Multiple"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Info
+      description: Browser, Node.js version, React version, etc.
+      value: |
+        - OS: 
+        - Browser: 
+        - Node version: 
+        - Package version: 0.1.0

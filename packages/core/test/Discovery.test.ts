@@ -75,4 +75,44 @@ describe("Discovery", () => {
     expect(registry.values().map((field) => field.name)).toEqual(["email"]);
     expect(registry.get("password")).toBeUndefined();
   });
+
+  it("retains checked radio or first radio without thrashing on sibling radios with the same name", () => {
+    const form = document.createElement("form");
+    const radio1 = document.createElement("input");
+    radio1.type = "radio";
+    radio1.name = "speed";
+    radio1.value = "standard";
+
+    const radio2 = document.createElement("input");
+    radio2.type = "radio";
+    radio2.name = "speed";
+    radio2.value = "express";
+    radio2.checked = true;
+
+    const radio3 = document.createElement("input");
+    radio3.type = "radio";
+    radio3.name = "speed";
+    radio3.value = "overnight";
+
+    form.append(radio1, radio2, radio3);
+
+    const discovery = new Discovery();
+    const registry = new FieldRegistry();
+
+    let changeCount = 0;
+    registry.onChange = () => {
+      changeCount++;
+    };
+
+    discovery.discover(form, registry);
+
+    // Initial mount: radio1 registered, radio2 replaces radio1 because radio2 is checked, radio3 skipped
+    expect(registry.get("speed")?.element).toBe(radio2);
+
+    // Second discovery pass should be completely stable with 0 changes
+    const changesBeforeSecondPass = changeCount;
+    discovery.discover(form, registry);
+    expect(changeCount).toBe(changesBeforeSecondPass);
+    expect(registry.get("speed")?.element).toBe(radio2);
+  });
 });

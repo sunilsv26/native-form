@@ -1768,7 +1768,7 @@ const wizardZodSchema = z.object({
     .refine((val) => val === true || val === "on", "You must confirm the order details"),
 });
 
-function WizardShowcaseView() {
+export function WizardShowcaseView() {
   const [pattern, setPattern] = useState<"dom" | "component">("dom");
   const [submittedData, setSubmittedData] = useState<Record<string, unknown> | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);

@@ -31,6 +31,33 @@ export class Discovery {
             continue;
           }
 
+          // If both are radio buttons in the same radio group, prefer the checked one
+          // and avoid thrashing on sibling radios.
+          if (
+            control instanceof HTMLInputElement &&
+            control.type === "radio" &&
+            existing.element instanceof HTMLInputElement &&
+            existing.element.type === "radio"
+          ) {
+            if (control.checked && !existing.element.checked) {
+              registry.unregister(name);
+              registry.register(new FieldNode(control));
+            }
+            continue;
+          }
+
+          // If multiple checkboxes share the same name, retain the registered node
+          // if it is still part of the form, rather than thrashing.
+          if (
+            control instanceof HTMLInputElement &&
+            control.type === "checkbox" &&
+            existing.element instanceof HTMLInputElement &&
+            existing.element.type === "checkbox" &&
+            existing.element.form === form
+          ) {
+            continue;
+          }
+
           // Otherwise replace the registry entry so the FieldNode points
           // to the current DOM control.
           registry.unregister(name);

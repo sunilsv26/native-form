@@ -1,186 +1,180 @@
 # Native Form
 
-Native HTML-first form runtime and adapters.
+> Zero-registration, native HTML-first form runtime and validation engine for modern web apps.
 
-## Docs
+[![npm version](https://img.shields.io/npm/v/@native-form/core.svg)](https://www.npmjs.com/package/@native-form/core)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-- Architecture: [docs/architecture.md](docs/architecture.md)
-- API reference: [docs/API.md](docs/API.md)
-- Product roadmap: [docs/ROADMAP.md](docs/ROADMAP.md)
-- Weekly execution board: [docs/WEEKLY_EXECUTION_BOARD.md](docs/WEEKLY_EXECUTION_BOARD.md)
-- RHF/Formik migration guide: [docs/MIGRATION_RHF.md](docs/MIGRATION_RHF.md)
-- Contributing guide: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
-- Design specification: [docs/DESIGN.md](docs/DESIGN.md)
-- Lifecycle contract: [docs/LIFECYCLE.md](docs/LIFECYCLE.md)
-- Release checklist: [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)
-- Runtime module: [docs/RUNTIME.md](docs/RUNTIME.md)
-- FieldNode module: [docs/FIELDNODE.md](docs/FIELDNODE.md)
-- Validation module: [docs/VALIDATION.md](docs/VALIDATION.md)
+Traditional form libraries force you to register every input with JavaScript refs or state wrappers (`{...register('field')}`). **Native Form** works differently: it respects standard HTML forms and automatically discovers inputs directly from the DOM using standard `name` attributes.
 
-## Packages
+---
 
-- `@native-form/core`: framework-agnostic runtime, discovery, registry, serialization, path helpers, and validation pipeline contracts.
-- `@native-form/react`: React bindings, components, and hooks (`<Form>`, `useForm`, `useField`, `useWatch`).
-- `@native-form/zod`: Zod adapter layer for schema-driven validation integration (`zodResolver`).
-- `@native-form/yup`: Yup adapter layer for schema-driven validation integration (`yupResolver`).
-- `@native-form/adapter-contracts`: shared test fixtures and contract test matrix across schema adapters.
+## 🌐 Cross-Platform Architecture
 
-## Development
+Native Form is architected into lightweight, decoupled modules so you can use it in **any framework or in pure vanilla JavaScript**:
 
-```bash
-pnpm test
-pnpm build
-pnpm verify
+```
+                       ┌───────────────────────┐
+                       │   @native-form/core   │ (Vanilla JS, Vue, Svelte, Angular)
+                       └───────────┬───────────┘
+                                   │
+              ┌────────────────────┼────────────────────┐
+              ▼                    ▼                    ▼
+   ┌─────────────────────┐ ┌───────────────┐ ┌────────────────────┐
+   │  @native-form/react │ │ Schema Adapters│ │ Framework Adapters │
+   │ (React 18 & 19 Hooks│ │ (Zod/Yup/Vali)│ │   (Vue / Svelte)   │
+   └─────────────────────┘ └───────────────┘ └────────────────────┘
 ```
 
-## Quick Start (Example)
+| Platform / Framework | Package | Quick Install |
+| :--- | :--- | :--- |
+| **React (18 & 19, Next.js, Remix)** | [`@native-form/react`](packages/react/README.md) | `npm i @native-form/react @native-form/core` |
+| **Vanilla JS / TypeScript** | [`@native-form/core`](packages/core/README.md) | `npm i @native-form/core` |
+| **Vue.js (Vue 3 `<script setup>`)** | [`@native-form/core`](packages/core/README.md#2-vuejs-vue-3-script-setup) | `npm i @native-form/core` |
+| **Svelte (Svelte 4 & 5)** | [`@native-form/core`](packages/core/README.md#3-svelte-svelte-4--5) | `npm i @native-form/core` |
+| **Zod Schema Validation** | [`@native-form/zod`](packages/zod/README.md) | `npm i @native-form/zod zod` |
+| **Yup Schema Validation** | [`@native-form/yup`](packages/yup/README.md) | `npm i @native-form/yup yup` |
+| **Valibot Schema Validation** | [`@native-form/valibot`](packages/valibot/README.md) | `npm i @native-form/valibot valibot` |
 
-Run the Vite example app:
+---
 
-```bash
-pnpm --filter native-form-example-vite dev
-```
+## Key Highlights
 
-Minimal usage shape:
+- **Zero Registration**: Inputs are discovered automatically via standard `name` attributes.
+- **Minimal Re-renders**: Uncontrolled DOM-first inputs mean keystrokes do not trigger component re-renders.
+- **Typed & Native Serialization**: Extract raw string/FormData or automatically coerce inputs to typed numbers, booleans, and arrays.
+- **Nested Object Paths**: Built-in support for dot notation (`user.email`) and bracket notation (`items[0].name`).
+- **Async Validation Pipeline**: Debounced validation with automatic `AbortController` cancellation for in-flight requests.
+- **Multi-Step Memory Hydration**: `preserveUnmountedValues: true` preserves data across unmounted wizard steps.
+
+---
+
+## Quick Starts
+
+### 1. In React
 
 ```tsx
-import { Form } from "@native-form/react";
-
-export function LoginForm() {
-  return (
-    <Form onSubmit={(values) => console.log(values)}>
-      <input name="email" type="email" />
-      <button type="submit">Submit</button>
-    </Form>
-  );
-}
-```
-
-Fields are discovered automatically by their `name` attribute (no manual registration).
-
-### Validation with Zod
-
-```tsx
-import { z } from "zod";
-import { Form } from "@native-form/react";
+import React from "react";
+import { useForm, useField } from "@native-form/react";
 import { zodResolver } from "@native-form/zod";
+import { z } from "zod";
 
 const schema = z.object({
-  email: z.string().email("Invalid email"),
+  email: z.string().email("Enter a valid email"),
+  age: z.union([z.number(), z.string().regex(/^\d+$/).transform(Number)]),
 });
 
 export function LoginForm() {
-  return (
-    <Form schema={zodResolver(schema)} onSubmit={(values) => console.log(values)}>
-      <input name="email" type="email" />
-      <button type="submit">Submit</button>
-    </Form>
-  );
-}
-```
+  const form = useForm({
+    schema: zodResolver(schema),
+    serializationMode: "typed",
+    onSubmit: (values) => console.log("Validated:", values),
+  });
 
-### Validation with Yup
-
-```tsx
-import * as yup from "yup";
-import { Form } from "@native-form/react";
-import { yupResolver } from "@native-form/yup";
-
-const schema = yup.object({
-  email: yup.string().email("Invalid email").required(),
-});
-
-export function LoginForm() {
-  return (
-    <Form schema={yupResolver(schema)} onSubmit={(values) => console.log(values)}>
-      <input name="email" type="email" />
-      <button type="submit">Submit</button>
-    </Form>
-  );
-}
-```
-
-### Hooks (`useForm` + `useField`)
-
-```tsx
-import { useMemo } from "react";
-import { useField, useForm } from "@native-form/react";
-import { zodResolver } from "@native-form/zod";
-import { z } from "zod";
-
-const schemaDef = z.object({
-  email: z.string().email("Invalid email"),
-});
-
-export function LoginForm() {
-  // Keep resolver identity stable to avoid unnecessary reconfiguration.
-  const schema = useMemo(() => zodResolver(schemaDef), []);
-  const form = useForm({ schema });
-  const email = useField({ form, name: "email" });
+  const emailField = useField({ form, name: "email" });
 
   return (
     <form ref={form.formRef} noValidate>
-      <input name="email" type="email" />
-      {email.error ? <p>{email.error}</p> : null}
-      <button type="submit">Submit</button>
+      <input name="email" type="email" placeholder="Email" />
+      {emailField.error && <span style={{ color: "red" }}>{emailField.error}</span>}
+
+      <input name="age" type="number" placeholder="Age" />
+
+      <button type="submit" disabled={form.formState.submitting}>
+        {form.formState.submitting ? "Validating..." : "Submit"}
+      </button>
     </form>
   );
 }
 ```
 
-### Targeted Watch & Selective Subscriptions (`useWatch`)
+### 2. In Plain Vanilla JS
 
-Use `useWatch` to subscribe to individual fields, multi-field lists, or computed slices without re-rendering the whole form:
-
-```tsx
-import { useForm, useWatch, useField } from "@native-form/react";
-
-function EmailPreview({ form }) {
-  // Only re-renders when "email" value changes
-  const email = useWatch({ form, name: "email" });
-  return <p>Preview: {String(email ?? "")}</p>;
-}
-
-function SubmitButton({ form }) {
-  // Only re-renders when validity state flips
-  const isValid = useWatch({ form, selector: (state) => state.valid });
-  return <button disabled={!isValid} type="submit">Submit</button>;
-}
-
-export function RegistrationForm() {
-  // subscribe: false decouples parent form from input keystrokes
-  const form = useForm({ subscribe: false });
-
-  return (
-    <form ref={form.formRef}>
-      <input name="email" type="email" />
-      <input name="password" type="password" />
-      <EmailPreview form={form} />
-      <SubmitButton form={form} />
-    </form>
-  );
-}
+```html
+<form id="login-form">
+  <input name="email" type="email" required />
+  <input name="age" type="number" min="18" />
+  <button type="submit">Submit</button>
+</form>
 ```
 
-### Path Helpers (Nested & Array Field Names)
+```ts
+import { Runtime } from "@native-form/core";
 
-```tsx
-import {
-  arrayItemPath,
-  formPath,
-  parseArrayItemPath,
-  shiftArrayItemIndex,
-  splitPath,
-} from "@native-form/core";
+const formEl = document.getElementById("login-form") as HTMLFormElement;
 
-// Path building:
-const USER_EMAIL = formPath("user", "email"); // "user.email"
-const TEAMMATE_0_EMAIL = arrayItemPath("teammates", 0, "email"); // "teammates.0.email"
+const runtime = new Runtime({
+  mode: "onBlur",
+  serializationMode: "typed",
+  onSubmit: (values) => {
+    console.log("Submitted typed values:", values);
+  },
+});
 
-// Path parsing & array shifting on deletion:
-splitPath("items.0.name"); // ["items", "0", "name"]
-parseArrayItemPath("items.0.name"); // { arrayName: "items", index: 0, subPath: "name" }
-shiftArrayItemIndex("items.2.name", "items", 1, -1); // "items.1.name"
+runtime.mount(formEl);
 ```
 
-On invalid submit/change, runtime-managed inline/native error messages are applied next to the affected field.
+### 3. In Vue 3
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from "vue";
+import { Runtime } from "@native-form/core";
+
+const formRef = ref<HTMLFormElement | null>(null);
+let runtime: Runtime | null = null;
+
+onMounted(() => {
+  if (formRef.value) {
+    runtime = new Runtime({
+      mode: "onBlur",
+      onSubmit: (values) => console.log("Vue form values:", values),
+    });
+    runtime.mount(formRef.value);
+  }
+});
+
+onUnmounted(() => runtime?.unmount());
+</script>
+
+<template>
+  <form ref="formRef" novalidate>
+    <input name="email" type="email" required />
+    <input name="password" type="password" minlength="8" required />
+    <button type="submit">Log In</button>
+  </form>
+</template>
+```
+
+---
+
+## Monorepo Packages
+
+* **[`packages/core`](packages/core/README.md)**: Core framework-agnostic runtime and DOM observer.
+* **[`packages/react`](packages/react/README.md)**: React bindings and hooks (`useForm`, `useField`, `useWatch`, `useFieldArray`, `useWizard`).
+* **[`packages/zod`](packages/zod/README.md)**: Zod validation adapter (`zodResolver`).
+* **[`packages/yup`](packages/yup/README.md)**: Yup validation adapter (`yupResolver`).
+* **[`packages/valibot`](packages/valibot/README.md)**: Valibot validation adapter (`valibotResolver`).
+
+---
+
+## Local Development & Playground
+
+To run the interactive playground locally:
+
+```bash
+pnpm install
+pnpm --filter native-form-example-vite dev
+```
+
+To run test suites and type-checking across all packages:
+
+```bash
+pnpm verify
+```
+
+---
+
+## License
+
+MIT © [Sunil](https://github.com/sunilsv26)

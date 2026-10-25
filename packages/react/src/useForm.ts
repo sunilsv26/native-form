@@ -101,6 +101,8 @@ export function useForm<
 
     const runtime = new Runtime<TValues>({
       mode: options.mode,
+      serializationMode: options.serializationMode,
+      serializeFieldsOptions: options.serializeFieldsOptions,
       schema: schemaRef.current as SchemaLike<TValues> | undefined,
       validator: validatorRef.current,
       pipeline: pipelineRef.current,
@@ -147,12 +149,21 @@ export function useForm<
     if (runtimeRef.current) {
       runtimeRef.current.setOptions({
         mode: options.mode,
+        serializationMode: options.serializationMode,
+        serializeFieldsOptions: options.serializeFieldsOptions,
         schema: options.schema as any,
         validator: options.validator,
         pipeline: options.pipeline,
       });
     }
-  }, [options.mode, options.schema, options.validator, options.pipeline]);
+  }, [
+    options.mode,
+    options.serializationMode,
+    options.serializeFieldsOptions,
+    options.schema,
+    options.validator,
+    options.pipeline,
+  ]);
 
   const watch = useCallback(
     ((

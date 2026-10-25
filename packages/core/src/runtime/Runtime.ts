@@ -25,6 +25,7 @@ import {
   NativeFormValues,
   RuntimeEvent,
   RuntimeListener,
+  SerializationMode,
   ValidationMode,
 } from "../shared/types";
 import {
@@ -39,6 +40,8 @@ export interface RuntimeOptions<
   TValues extends NativeFormValues = NativeFormValues,
 > {
   mode?: ValidationMode;
+  serializationMode?: SerializationMode;
+  serializeFieldsOptions?: SerializeFieldsOptions;
   schema?: SchemaLike<TValues>;
   validator?: Validator<TValues>;
   pipeline?: ValidationPipeline<TValues>;
@@ -67,6 +70,7 @@ export interface RuntimePublicApi<
   TValues extends NativeFormValues = NativeFormValues,
 > {
   readonly fields: FieldState[];
+  readonly serializationMode: SerializationMode;
   mount(form: HTMLFormElement): void;
   unmount(): void;
   serialize(): NativeFormFlatValues;
@@ -146,7 +150,7 @@ export class Runtime<
     this.syncFields();
     this.fieldErrorRenderer.normalizeFields(this.registry.values());
 
-    const values = this.serialize();
+    const values = this.extractCurrentValues() as unknown as NativeFormFlatValues;
 
     for (const field of this.registry.getAll()) {
       field.register(values[field.name]);
@@ -223,6 +227,22 @@ export class Runtime<
     return this.getFieldStates();
   }
 
+  get serializationMode(): SerializationMode {
+    return this.options.serializationMode ?? "native";
+  }
+
+  private extractCurrentValues(): TValues {
+    if (!this.form) {
+      return {} as TValues;
+    }
+    if (this.serializationMode === "typed") {
+      return this.serializeFields(
+        this.options.serializeFieldsOptions,
+      ) as unknown as TValues;
+    }
+    return this.serialize() as unknown as TValues;
+  }
+
   subscribe(listener: RuntimeListener): () => void {
     this.listeners.add(listener);
 
@@ -258,7 +278,7 @@ export class Runtime<
   }
 
   async validate() {
-    const validation = await this.runValidation(this.serialize());
+    const validation = await this.runValidation(this.extractCurrentValues());
 
     return validation.result;
   }
@@ -275,7 +295,7 @@ export class Runtime<
       throw new Error("Runtime is not mounted.");
     }
 
-    const values = this.serialize();
+    const values = this.extractCurrentValues();
     // lifecycle: mark fields as submitted/touched
     for (const field of this.registry.values()) {
       field.handleSubmit();
@@ -321,7 +341,7 @@ export class Runtime<
     return validation.result;
   }
 
-  private async runValidation(values: NativeFormFlatValues): Promise<{
+  private async runValidation(values: NativeFormValues): Promise<{
     result: ValidationResult<TValues>;
     signal: AbortSignal;
     aborted: boolean;
@@ -493,7 +513,7 @@ export class Runtime<
     | undefined {
     this.ensureField(element);
 
-    const values = this.serialize();
+    const values = this.extractCurrentValues() as unknown as NativeFormFlatValues;
     const value = values[element.name];
     const node = this.registry.get(element.name);
 
@@ -532,7 +552,7 @@ export class Runtime<
 
     this.ensureField(element);
 
-    const values = this.serialize();
+    const values = this.extractCurrentValues() as unknown as NativeFormFlatValues;
     const value = values[element.name];
 
     const node = this.registry.get(element.name);
@@ -608,7 +628,7 @@ export class Runtime<
     queueMicrotask(() => {
       if (!this.form) return;
 
-      const values = this.serialize();
+      const values = this.extractCurrentValues() as unknown as NativeFormFlatValues;
 
       this.processResetFlow(values);
     });
@@ -688,7 +708,7 @@ export class Runtime<
       this.emitValidationEvent({
         type: "validation:end",
         errors: { ...this.errors },
-        values: this.form ? this.serialize() : {},
+        values: this.extractCurrentValues() as unknown as NativeFormValues,
       });
     }
   }
@@ -725,7 +745,7 @@ export class Runtime<
       this.emitValidationEvent({
         type: "validation:end",
         errors: { ...this.errors },
-        values: this.form ? this.serialize() : {},
+        values: this.extractCurrentValues() as unknown as NativeFormValues,
       });
     }
   }
@@ -767,7 +787,7 @@ export class Runtime<
       this.emitValidationEvent({
         type: "validation:end",
         errors: { ...this.errors },
-        values: this.form ? this.serialize() : {},
+        values: this.extractCurrentValues() as unknown as NativeFormValues,
       });
     }
   }
@@ -798,7 +818,7 @@ export class Runtime<
       this.emitValidationEvent({
         type: "validation:end",
         errors: { ...this.errors },
-        values: this.form ? this.serialize() : {},
+        values: this.extractCurrentValues() as unknown as NativeFormValues,
       });
     }
   }
@@ -814,7 +834,7 @@ export class Runtime<
       validating: this.validating,
       errors: { ...this.errors },
       fields,
-      values: this.form ? this.serialize() : ({} as NativeFormFlatValues),
+      values: this.extractCurrentValues() as unknown as NativeFormFlatValues,
     };
   }
 
@@ -940,7 +960,7 @@ export class Runtime<
 
     this.discovery.discover(this.form, this.registry);
 
-    const values = this.serialize();
+    const values = this.extractCurrentValues() as unknown as NativeFormFlatValues;
 
     for (const field of this.registry.values()) {
       if (
@@ -1011,7 +1031,7 @@ export class Runtime<
 
   private applyValidationResult(
     result: ValidationResult<TValues>,
-    values: NativeFormFlatValues,
+    values: NativeFormValues,
   ): void {
     this.fieldErrorRenderer.normalizeFields(this.registry.values());
 

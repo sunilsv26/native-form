@@ -32,8 +32,8 @@ export interface Validator<
   TValues extends NativeFormValues = NativeFormValues,
 > {
   validate(
-    values: NativeFormFlatValues,
-    context: ValidationContext,
+    values: NativeFormValues,
+    context?: ValidationContext,
   ): ValidationResult<TValues> | Promise<ValidationResult<TValues>>;
 }
 

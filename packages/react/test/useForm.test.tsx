@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 
-import { useEffect } from "react";
+import { act, useEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { useForm } from "../src";
@@ -36,5 +36,61 @@ describe("useForm", () => {
     await view.cleanup();
 
     expect(onRuntime.mock.calls.at(-1)?.[0]).toBeNull();
+  });
+
+  it("populates formState.values and form.watch() with typed primitives when serializationMode is typed", async () => {
+    let capturedForm!: ReturnType<typeof useForm>;
+    const onSubmit = vi.fn();
+
+    function TypedFormApp() {
+      const form = useForm({
+        serializationMode: "typed",
+        onSubmit,
+      });
+      capturedForm = form;
+
+      return (
+        <form ref={form.formRef}>
+          <input name="age" type="number" defaultValue="25" />
+          <input name="accepted" type="checkbox" defaultChecked />
+          <input name="newsletter" type="checkbox" />
+          <button type="submit">Submit</button>
+        </form>
+      );
+    }
+
+    const view = await renderReact(<TypedFormApp />);
+
+    expect(capturedForm.formState.values).toEqual({
+      age: 25,
+      accepted: true,
+      newsletter: false,
+    });
+
+    expect(capturedForm.watch()).toEqual({
+      age: 25,
+      accepted: true,
+      newsletter: false,
+    });
+    expect(capturedForm.watch("age")).toBe(25);
+    expect(capturedForm.watch("accepted")).toBe(true);
+    expect(capturedForm.watch("newsletter")).toBe(false);
+
+    const button = view.container.querySelector("button")!;
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+    });
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      {
+        age: 25,
+        accepted: true,
+        newsletter: false,
+      },
+      expect.anything(),
+    );
+
+    await view.cleanup();
   });
 });

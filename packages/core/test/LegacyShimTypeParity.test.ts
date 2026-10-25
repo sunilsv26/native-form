@@ -10,6 +10,7 @@ import type {
   RuntimeEvent as RuntimeEventFlat,
   RuntimeEventType as RuntimeEventTypeFlat,
   RuntimeListener as RuntimeListenerFlat,
+  SerializationMode as SerializationModeFlat,
 } from "../src/types";
 import type { FieldState as FieldStateLayered } from "../src/field/FieldState";
 import type {
@@ -21,6 +22,7 @@ import type {
   RuntimeEvent as RuntimeEventLayered,
   RuntimeEventType as RuntimeEventTypeLayered,
   RuntimeListener as RuntimeListenerLayered,
+  SerializationMode as SerializationModeLayered,
 } from "../src/shared/types";
 import type {
   Runtime as RuntimeFlat,
@@ -102,6 +104,10 @@ type RuntimeListenerParity = IsEqual<
   RuntimeListenerFlat,
   RuntimeListenerLayered
 >;
+type SerializationModeParity = IsEqual<
+  SerializationModeFlat,
+  SerializationModeLayered
+>;
 type RuntimeOptionsParity = IsEqual<RuntimeOptionsFlat, RuntimeOptionsLayered>;
 type RuntimeFormStateParity = IsEqual<
   RuntimeFormStateFlat,
@@ -177,6 +183,7 @@ const nativeFormValuesParity: NativeFormValuesParity = true;
 const runtimeEventTypeParity: RuntimeEventTypeParity = true;
 const runtimeEventParity: RuntimeEventParity = true;
 const runtimeListenerParity: RuntimeListenerParity = true;
+const serializationModeParity: SerializationModeParity = true;
 const runtimeOptionsParity: RuntimeOptionsParity = true;
 const runtimeFormStateParity: RuntimeFormStateParity = true;
 const runtimePublicApiParity: RuntimePublicApiParity = true;
@@ -209,6 +216,7 @@ describe("Legacy shim type parity contract", () => {
     expect(runtimeEventTypeParity).toBe(true);
     expect(runtimeEventParity).toBe(true);
     expect(runtimeListenerParity).toBe(true);
+    expect(serializationModeParity).toBe(true);
     expect(runtimeOptionsParity).toBe(true);
     expect(runtimeFormStateParity).toBe(true);
     expect(runtimePublicApiParity).toBe(true);

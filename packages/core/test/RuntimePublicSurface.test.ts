@@ -4,6 +4,7 @@ import type { Runtime, RuntimePublicApi } from "../src/Runtime";
 
 type RuntimePublicKey =
   | "fields"
+  | "serializationMode"
   | "mount"
   | "unmount"
   | "serialize"

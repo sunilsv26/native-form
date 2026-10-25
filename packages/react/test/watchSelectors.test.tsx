@@ -386,5 +386,97 @@ describe("watch and selector ergonomics (NF-018)", () => {
 
     await view.cleanup();
   });
+
+  it("supports mode: 'typed' in useWatch to watch typed primitives", async () => {
+    function TypedWatcher({ form }: { form: UseFormResult }) {
+      const age = useWatch({ form, name: "age", mode: "typed" });
+      const active = useWatch({ form, name: "active", mode: "typed" });
+      const all = useWatch({ form, mode: "typed" });
+
+      return (
+        <div>
+          <span data-testid="typed-age-type">{typeof age}</span>
+          <span data-testid="typed-age-val">{String(age)}</span>
+          <span data-testid="typed-active-type">{typeof active}</span>
+          <span data-testid="typed-active-val">{String(active)}</span>
+          <span data-testid="typed-all">{JSON.stringify(all)}</span>
+        </div>
+      );
+    }
+
+    function FormApp() {
+      const form = useForm({ subscribe: false });
+      return (
+        <form ref={form.formRef}>
+          <input name="age" type="number" defaultValue="42" />
+          <input name="active" type="checkbox" defaultChecked />
+          <input name="unsub" type="checkbox" />
+          <TypedWatcher form={form} />
+        </form>
+      );
+    }
+
+    const view = await renderReact(<FormApp />);
+
+    expect(
+      view.container.querySelector("[data-testid='typed-age-type']")?.textContent,
+    ).toBe("number");
+    expect(
+      view.container.querySelector("[data-testid='typed-age-val']")?.textContent,
+    ).toBe("42");
+    expect(
+      view.container.querySelector("[data-testid='typed-active-type']")
+        ?.textContent,
+    ).toBe("boolean");
+    expect(
+      view.container.querySelector("[data-testid='typed-active-val']")
+        ?.textContent,
+    ).toBe("true");
+
+    expect(
+      JSON.parse(
+        view.container.querySelector("[data-testid='typed-all']")?.textContent ||
+          "{}",
+      ),
+    ).toEqual({
+      age: 42,
+      active: true,
+      unsub: false,
+    });
+
+    await view.cleanup();
+  });
+
+  it("inherits serializationMode: 'typed' from useForm in useWatch", async () => {
+    function Watcher({ form }: { form: UseFormResult }) {
+      const values = useWatch({ form });
+      return <span data-testid="watched-values">{JSON.stringify(values)}</span>;
+    }
+
+    function FormApp() {
+      const form = useForm({ serializationMode: "typed", subscribe: false });
+      return (
+        <form ref={form.formRef}>
+          <input name="score" type="number" defaultValue="100" />
+          <input name="enabled" type="checkbox" defaultChecked />
+          <Watcher form={form} />
+        </form>
+      );
+    }
+
+    const view = await renderReact(<FormApp />);
+
+    expect(
+      JSON.parse(
+        view.container.querySelector("[data-testid='watched-values']")
+          ?.textContent || "{}",
+      ),
+    ).toEqual({
+      score: 100,
+      enabled: true,
+    });
+
+    await view.cleanup();
+  });
 });
 

@@ -58,7 +58,7 @@ export interface ValidationPipeline<
    * Used for full-form validation flows (for example, submit).
    */
   validate(
-    values: NativeFormFlatValues,
+    values: NativeFormValues,
     context: ValidationPipelineContext,
   ): ValidationResult<TValues> | Promise<ValidationResult<TValues>>;
 
@@ -70,7 +70,7 @@ export interface ValidationPipeline<
    */
   validateField(
     field: ValidationFieldMeta,
-    values: NativeFormFlatValues,
+    values: NativeFormValues,
     context: ValidationPipelineContext,
   ): ValidationResult<TValues> | Promise<ValidationResult<TValues>>;
 }

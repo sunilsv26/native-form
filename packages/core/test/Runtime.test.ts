@@ -1926,6 +1926,107 @@ describe("Runtime", () => {
       });
     });
   });
+
+  describe("serializationMode (RFC 002)", () => {
+    it("serializes strings in default native mode", () => {
+      const form = createForm(`
+        <input name="age" type="number" value="30" />
+        <input name="terms" type="checkbox" checked />
+        <input name="newsletter" type="checkbox" />
+      `);
+
+      const runtime = new Runtime();
+      runtime.mount(form);
+
+      expect(runtime.serializationMode).toBe("native");
+      const state = runtime.getFormState();
+      expect(state.values).toEqual({
+        age: "30",
+        terms: "on",
+      });
+      // Unchecked checkbox is omitted in native mode
+      expect("newsletter" in state.values).toBe(false);
+    });
+
+    it("serializes typed primitives when serializationMode is typed", () => {
+      const form = createForm(`
+        <input name="age" type="number" value="30" />
+        <input name="terms" type="checkbox" checked />
+        <input name="newsletter" type="checkbox" />
+      `);
+
+      const runtime = new Runtime({ serializationMode: "typed" });
+      runtime.mount(form);
+
+      expect(runtime.serializationMode).toBe("typed");
+      const state = runtime.getFormState();
+      expect(state.values).toEqual({
+        age: 30,
+        terms: true,
+        newsletter: false,
+      });
+    });
+
+    it("passes typed values to onSubmit and validate when serializationMode is typed", async () => {
+      const form = createForm(`
+        <input name="count" type="number" value="42" />
+        <input name="active" type="checkbox" checked />
+      `);
+
+      const onSubmit = vi.fn();
+      let validatedValues: any;
+      const validator = {
+        validate(values: any) {
+          validatedValues = values;
+          return { success: true, values };
+        },
+      };
+
+      const runtime = new Runtime({
+        serializationMode: "typed",
+        validator,
+        onSubmit,
+      });
+      runtime.mount(form);
+
+      const result = await runtime.validate();
+      expect(result.success).toBe(true);
+      expect(validatedValues).toEqual({
+        count: 42,
+        active: true,
+      });
+
+      await runtime.submit();
+      expect(onSubmit).toHaveBeenCalledWith(
+        {
+          count: 42,
+          active: true,
+        },
+        undefined,
+      );
+    });
+
+    it("dynamically switches serializationMode via setOptions", () => {
+      const form = createForm(`
+        <input name="price" type="number" value="99" />
+        <input name="discount" type="checkbox" />
+      `);
+
+      const runtime = new Runtime();
+      runtime.mount(form);
+
+      expect(runtime.getFormState().values).toEqual({
+        price: "99",
+      });
+
+      runtime.setOptions({ serializationMode: "typed" });
+      expect(runtime.serializationMode).toBe("typed");
+      expect(runtime.getFormState().values).toEqual({
+        price: 99,
+        discount: false,
+      });
+    });
+  });
 });
 
 function createForm(markup: string): HTMLFormElement {

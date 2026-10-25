@@ -19,8 +19,22 @@ export type NativeFormElement =
   | HTMLSelectElement
   | HTMLTextAreaElement;
 
+/**
+ * Supported serialization modes.
+ * - 'native': extracts string / FormData values matching browser native FormData.
+ * - 'typed': preserves typed primitives (numbers, booleans, FileLists, string arrays) via serializeFields.
+ * @public
+ */
+export type SerializationMode = "native" | "typed";
+
 /** @public */
-export type NativeFormValue = FormDataEntryValue | FormDataEntryValue[];
+export type NativeFormValue =
+  | FormDataEntryValue
+  | FormDataEntryValue[]
+  | number
+  | boolean
+  | FileList
+  | null;
 
 /** @public */
 export type NativeFormFlatValues = Record<string, NativeFormValue>;

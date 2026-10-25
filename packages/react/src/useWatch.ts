@@ -4,7 +4,9 @@ import {
   NativeFormFlatValues,
   NativeFormValue,
   NativeFormValues,
+  Runtime,
   RuntimeFormState,
+  SerializationMode,
 } from "@native-form/core";
 
 import { shallowEqual } from "./shallowEqual";
@@ -19,6 +21,7 @@ export interface UseWatchBaseOptions<
 > {
   form: UseFormResult<TValues>;
   defaultValue?: unknown;
+  mode?: SerializationMode;
 }
 
 /** @public */
@@ -74,13 +77,27 @@ function computeWatchValue<
 >(
   options: UseWatchOptions<TValues, TResult>,
   formState: RuntimeFormState,
+  runtime?: Runtime<TValues> | null,
 ): unknown {
   if (options.selector) {
     return options.selector(formState);
   }
 
+  const effectiveMode =
+    options.mode ?? runtime?.serializationMode ?? "native";
+
   if (typeof options.name === "string") {
-    const val = formState.values[options.name];
+    let val: NativeFormValue | undefined;
+    if (runtime) {
+      if (options.mode === "native") {
+        val = runtime.serialize()[options.name];
+      } else {
+        val = runtime.getFieldValue(options.name);
+      }
+    } else {
+      val = formState.values[options.name];
+    }
+
     if (
       options.defaultValue !== undefined &&
       (val === undefined || val === "")
@@ -96,8 +113,21 @@ function computeWatchValue<
       | Record<string, NativeFormValue | undefined>
       | undefined;
 
+    const sourceValues =
+      runtime && options.mode === "native" ? runtime.serialize() : null;
+
     for (const n of options.names) {
-      const val = formState.values[n];
+      let val: NativeFormValue | undefined;
+      if (runtime) {
+        if (options.mode === "native") {
+          val = sourceValues?.[n];
+        } else {
+          val = runtime.getFieldValue(n);
+        }
+      } else {
+        val = formState.values[n];
+      }
+
       if (defaultMap?.[n] !== undefined && (val === undefined || val === "")) {
         result[n] = defaultMap[n];
       } else {
@@ -106,6 +136,12 @@ function computeWatchValue<
     }
 
     return result;
+  }
+
+  if (runtime) {
+    return effectiveMode === "typed"
+      ? runtime.serializeFields()
+      : runtime.serialize();
   }
 
   return formState.values;
@@ -137,12 +173,13 @@ export function useWatch<
   TValues extends NativeFormValues = NativeFormValues,
   TResult = unknown,
 >(options: UseWatchOptions<TValues, TResult>): unknown {
-  const formState = options.form.runtime
-    ? options.form.runtime.getFormState()
+  const runtime = options.form.runtime;
+  const formState = runtime
+    ? runtime.getFormState()
     : options.form.formState;
 
   const [selected, setSelected] = useState(() =>
-    computeWatchValue(options, formState),
+    computeWatchValue(options, formState, runtime),
   );
 
   const prevRef = useRef(selected);
@@ -152,47 +189,15 @@ export function useWatch<
   optionsRef.current = options;
 
   useEffect(() => {
-    const runtime = options.form.runtime;
-    if (!runtime) {
+    const currentRuntime = options.form.runtime;
+    if (!currentRuntime) {
       return;
     }
 
     const evaluate = () => {
       const opts = optionsRef.current;
-      let next: unknown;
-
-      if (typeof opts.name === "string") {
-        const val = runtime.getFieldValue(opts.name);
-        if (
-          opts.defaultValue !== undefined &&
-          (val === undefined || val === "")
-        ) {
-          next = opts.defaultValue;
-        } else {
-          next = val;
-        }
-      } else if (Array.isArray(opts.names)) {
-        const result: Record<string, NativeFormValue | undefined> = {};
-        const defaultMap = opts.defaultValue as
-          | Record<string, NativeFormValue | undefined>
-          | undefined;
-
-        for (const n of opts.names) {
-          const val = runtime.getFieldValue(n);
-          if (
-            defaultMap?.[n] !== undefined &&
-            (val === undefined || val === "")
-          ) {
-            result[n] = defaultMap[n];
-          } else {
-            result[n] = val;
-          }
-        }
-        next = result;
-      } else {
-        const currentFormState = runtime.getFormState();
-        next = computeWatchValue(opts, currentFormState);
-      }
+      const currentFormState = currentRuntime.getFormState();
+      const next = computeWatchValue(opts, currentFormState, currentRuntime);
 
       if (!shallowEqual(prevRef.current, next)) {
         prevRef.current = next;
@@ -202,7 +207,7 @@ export function useWatch<
 
     evaluate();
 
-    const unsubscribe = runtime.subscribe(() => {
+    const unsubscribe = currentRuntime.subscribe(() => {
       evaluate();
     });
 
@@ -211,9 +216,9 @@ export function useWatch<
     };
   }, [options.form.runtime]);
 
-  const currentComputed = computeWatchValue(options, formState);
+  const currentComputed = computeWatchValue(options, formState, runtime);
   if (
-    !options.form.runtime &&
+    !runtime &&
     !shallowEqual(prevRef.current, currentComputed)
   ) {
     prevRef.current = currentComputed;

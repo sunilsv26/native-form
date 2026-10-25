@@ -17,6 +17,7 @@ import type {
   RuntimeListener as RuntimeListenerFromBarrel,
   RuntimeOptions as RuntimeOptionsFromBarrel,
   RuntimePublicApi as RuntimePublicApiFromBarrel,
+  SerializationMode as SerializationModeFromBarrel,
   SchemaLike as SchemaLikeFromBarrel,
   StandardSchemaIssue as StandardSchemaIssueFromBarrel,
   StandardSchemaResult as StandardSchemaResultFromBarrel,
@@ -48,6 +49,7 @@ import type {
   RuntimeEvent as RuntimeEventCanonical,
   RuntimeEventType as RuntimeEventTypeCanonical,
   RuntimeListener as RuntimeListenerCanonical,
+  SerializationMode as SerializationModeCanonical,
   ValidationEvents as ValidationEventsCanonical,
 } from "../src/shared/types";
 import type {
@@ -124,6 +126,10 @@ type RuntimeEventParity = IsEqual<
 type RuntimeListenerParity = IsEqual<
   RuntimeListenerFromBarrel,
   RuntimeListenerCanonical
+>;
+type SerializationModeParity = IsEqual<
+  SerializationModeFromBarrel,
+  SerializationModeCanonical
 >;
 
 type RuntimeOptionsParity = IsEqual<
@@ -204,6 +210,7 @@ const nativeFormValuesParity: NativeFormValuesParity = true;
 const runtimeEventTypeParity: RuntimeEventTypeParity = true;
 const runtimeEventParity: RuntimeEventParity = true;
 const runtimeListenerParity: RuntimeListenerParity = true;
+const serializationModeParity: SerializationModeParity = true;
 
 const runtimeOptionsParity: RuntimeOptionsParity = true;
 const runtimeFormStateParity: RuntimeFormStateParity = true;
@@ -240,6 +247,7 @@ describe("@native-form/core public barrel type contract", () => {
     expect(runtimeEventTypeParity).toBe(true);
     expect(runtimeEventParity).toBe(true);
     expect(runtimeListenerParity).toBe(true);
+    expect(serializationModeParity).toBe(true);
 
     expect(runtimeOptionsParity).toBe(true);
     expect(runtimeFormStateParity).toBe(true);

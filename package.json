@@ -14,11 +14,17 @@
     "clean": "turbo clean"
   },
   "devDependencies": {
+    "@microsoft/api-extractor": "^7.32.0",
     "@types/node": "^24.0.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "tsup": "^9.0.0",
     "turbo": "^2.5.0",
-    "typescript": "^5.8.3",
-    "@microsoft/api-extractor": "^7.32.0"
+    "typescript": "^5.8.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

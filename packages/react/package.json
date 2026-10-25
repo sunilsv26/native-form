@@ -1,15 +1,17 @@
 {
   "name": "@native-form/react",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React bindings, components, and hooks for Native Form.",
   "license": "MIT",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
       "default": "./dist/index.js"
     }
   },
@@ -33,7 +35,7 @@
     "native-form"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --external react,react-dom,@native-form/core",
     "test": "vitest run"
   },
   "dependencies": {

@@ -1,6 +1,11 @@
 import React, { useId, useMemo, useRef, useState } from "react";
 import ReactDOM from "react-dom/client";
-import { arrayItemPath, formPath, type ValidationMode } from "@native-form/core";
+import {
+  arrayItemPath,
+  formPath,
+  type SerializationMode,
+  type ValidationMode,
+} from "@native-form/core";
 import {
   useField,
   useFieldArray,
@@ -15,13 +20,20 @@ import { z } from "zod";
 import * as yup from "yup";
 import * as v from "valibot";
 
-// --- Schemas ---
+// --- Schemas (handling both native string coerions and typed primitives) ---
 
 const zodLoginSchema = z.object({
   user: z.object({
     email: z.string().email("Enter a valid email address"),
     password: z.string().trim().min(8, "Password must be at least 8 characters"),
+    age: z
+      .union([z.number(), z.string().regex(/^\d+$/).transform(Number)])
+      .refine((n) => n >= 18 && n <= 100, "Age must be between 18 and 100"),
   }),
+  agreeToTerms: z
+    .union([z.boolean(), z.literal("on")])
+    .refine((val) => val === true || val === "on", "You must accept the terms"),
+  newsletter: z.union([z.boolean(), z.literal("on")]).optional(),
   teammates: z.array(
     z.object({
       email: z.string().email("Enter a valid teammate email"),
@@ -37,7 +49,17 @@ const valibotLoginSchema = v.object({
       v.trim(),
       v.minLength(8, "Password must be at least 8 characters"),
     ),
+    age: v.pipe(
+      v.union([v.number(), v.pipe(v.string(), v.regex(/^\d+$/), v.transform(Number))]),
+      v.minValue(18, "Age must be at least 18"),
+      v.maxValue(100, "Age must be under 100"),
+    ),
   }),
+  agreeToTerms: v.pipe(
+    v.union([v.boolean(), v.literal("on")]),
+    v.check((val) => val === true || val === "on", "You must accept the terms"),
+  ),
+  newsletter: v.optional(v.union([v.boolean(), v.literal("on")])),
   teammates: v.array(
     v.object({
       email: v.pipe(v.string(), v.email("Enter a valid teammate email")),
@@ -56,7 +78,22 @@ const yupLoginSchema = yup.object({
       .trim()
       .min(8, "Password must be at least 8 characters")
       .required("Password is required"),
+    age: yup
+      .number()
+      .typeError("Age must be a number")
+      .min(18, "Age must be at least 18")
+      .max(100, "Age must be under 100")
+      .required("Age is required"),
   }),
+  agreeToTerms: yup
+    .mixed()
+    .test(
+      "terms",
+      "You must accept the terms",
+      (val) => val === true || val === "on",
+    )
+    .required("You must accept the terms"),
+  newsletter: yup.mixed().optional(),
   teammates: yup.array().of(
     yup.object({
       email: yup
@@ -69,6 +106,9 @@ const yupLoginSchema = yup.object({
 
 const USER_EMAIL = formPath("user", "email");
 const USER_PASSWORD = formPath("user", "password");
+const USER_AGE = formPath("user", "age");
+const AGREE_TO_TERMS = "agreeToTerms";
+const NEWSLETTER = "newsletter";
 
 // --- Components for Showcase ---
 
@@ -146,15 +186,91 @@ function InputField({
   );
 }
 
+function CheckboxField({
+  form,
+  name,
+  label,
+  description,
+  defaultChecked = false,
+}: {
+  form: UseFormResult;
+  name: string;
+  label: string;
+  description?: string;
+  defaultChecked?: boolean;
+}) {
+  const field = useField({ form, name });
+  const id = useId();
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+      <label
+        htmlFor={id}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          cursor: "pointer",
+          fontSize: "14px",
+          color: "#1e293b",
+          fontWeight: 500,
+        }}
+      >
+        <input
+          id={id}
+          name={name}
+          type="checkbox"
+          defaultChecked={defaultChecked}
+          style={{ width: "16px", height: "16px", cursor: "pointer" }}
+        />
+        {label}
+      </label>
+      {description && (
+        <span
+          style={{
+            fontSize: "12px",
+            color: "#64748b",
+            marginLeft: "24px",
+          }}
+        >
+          {description}
+        </span>
+      )}
+      {field.error && (
+        <p
+          style={{
+            margin: "2px 0 0 24px",
+            fontSize: "12px",
+            color: "#e11d48",
+            fontWeight: 500,
+          }}
+        >
+          {field.error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function TeammateRow({
   form,
   name,
   index,
+  id,
+  isFirst,
+  isLast,
+  onMoveUp,
+  onMoveDown,
   onRemove,
 }: {
   form: UseFormResult;
   name: string;
   index: number;
+  id: string;
+  isFirst: boolean;
+  isLast: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
   onRemove: () => void;
 }) {
   const field = useField({ form, name });
@@ -163,15 +279,38 @@ function TeammateRow({
     <div
       style={{
         display: "flex",
-        alignItems: "flex-start",
+        alignItems: "center",
         gap: "8px",
-        padding: "10px",
+        padding: "8px 12px",
         background: "#f8fafc",
         borderRadius: "8px",
         border: "1px solid #e2e8f0",
       }}
     >
       <div style={{ flex: 1 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "4px",
+          }}
+        >
+          <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b" }}>
+            Teammate #{index + 1}
+          </span>
+          <span
+            style={{
+              fontSize: "10px",
+              fontFamily: "monospace",
+              color: "#94a3b8",
+              background: "#e2e8f0",
+              padding: "1px 6px",
+              borderRadius: "4px",
+            }}
+          >
+            id: {id.slice(-6)}
+          </span>
+        </div>
         <input
           name={name}
           type="email"
@@ -200,41 +339,101 @@ function TeammateRow({
           </p>
         ) : null}
       </div>
-      <button
-        type="button"
-        onClick={onRemove}
+
+      {/* useFieldArray action controls: swap / move / remove */}
+      <div
         style={{
-          padding: "8px 12px",
-          backgroundColor: "#fee2e2",
-          color: "#991b1b",
-          border: "none",
-          borderRadius: "6px",
-          cursor: "pointer",
-          fontWeight: 600,
-          fontSize: "12px",
+          display: "flex",
+          gap: "4px",
+          alignSelf: "flex-end",
+          marginBottom: "2px",
         }}
       >
-        Remove
-      </button>
+        <button
+          type="button"
+          onClick={onMoveUp}
+          disabled={isFirst}
+          title="Move Up"
+          style={{
+            padding: "6px 8px",
+            backgroundColor: isFirst ? "#f1f5f9" : "#e2e8f0",
+            color: isFirst ? "#cbd5e1" : "#334155",
+            border: "none",
+            borderRadius: "4px",
+            cursor: isFirst ? "not-allowed" : "pointer",
+            fontWeight: 600,
+            fontSize: "11px",
+          }}
+        >
+          ▲
+        </button>
+        <button
+          type="button"
+          onClick={onMoveDown}
+          disabled={isLast}
+          title="Move Down"
+          style={{
+            padding: "6px 8px",
+            backgroundColor: isLast ? "#f1f5f9" : "#e2e8f0",
+            color: isLast ? "#cbd5e1" : "#334155",
+            border: "none",
+            borderRadius: "4px",
+            cursor: isLast ? "not-allowed" : "pointer",
+            fontWeight: 600,
+            fontSize: "11px",
+          }}
+        >
+          ▼
+        </button>
+        <button
+          type="button"
+          onClick={onRemove}
+          title="Remove Teammate"
+          style={{
+            padding: "6px 10px",
+            backgroundColor: "#fee2e2",
+            color: "#991b1b",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+            fontWeight: 600,
+            fontSize: "11px",
+          }}
+        >
+          ✕
+        </button>
+      </div>
     </div>
   );
 }
 
-// Live telemetry panel using `useWatch` to demonstrate isolated re-renders
-function LiveTelemetry({ form }: { form: UseFormResult }) {
+// Live telemetry panel using `useWatch` to demonstrate isolated re-renders and dual-mode comparison
+function LiveTelemetry({
+  form,
+  serializationMode,
+}: {
+  form: UseFormResult;
+  serializationMode: SerializationMode;
+}) {
   const renderCountRef = useRef(0);
   renderCountRef.current++;
 
   const userEmail = useWatch({ form, name: USER_EMAIL });
+  const userAge = useWatch({ form, name: USER_AGE });
+  const agreeToTerms = useWatch({ form, name: AGREE_TO_TERMS });
+  const newsletter = useWatch({ form, name: NEWSLETTER });
   const isValid = useWatch({ form, selector: (s) => s.valid });
   const isSubmitting = useWatch({ form, selector: (s) => s.submitting });
-  const allValues = useWatch({ form });
+
+  // Compare live native vs typed extractions directly via runtime API
+  const nativeSnapshot = form.runtime ? form.runtime.serialize() : {};
+  const typedSnapshot = form.runtime ? form.runtime.serializeFields() : {};
 
   return (
     <div
       style={{
         marginTop: "20px",
-        padding: "14px",
+        padding: "16px",
         background: "#0f172a",
         color: "#f8fafc",
         borderRadius: "8px",
@@ -246,14 +445,32 @@ function LiveTelemetry({ form }: { form: UseFormResult }) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "10px",
+          marginBottom: "12px",
           borderBottom: "1px solid #334155",
-          paddingBottom: "8px",
+          paddingBottom: "10px",
         }}
       >
-        <span style={{ fontWeight: 700, color: "#38bdf8" }}>
-          Live Telemetry (useWatch)
-        </span>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <span style={{ fontWeight: 700, color: "#38bdf8", fontSize: "14px" }}>
+            Live Telemetry (useWatch)
+          </span>
+          <span
+            style={{
+              fontSize: "10px",
+              padding: "2px 8px",
+              borderRadius: "4px",
+              backgroundColor:
+                serializationMode === "typed" ? "#065f46" : "#1e293b",
+              color: serializationMode === "typed" ? "#34d399" : "#94a3b8",
+              border: `1px solid ${
+                serializationMode === "typed" ? "#059669" : "#475569"
+              }`,
+              fontWeight: 600,
+            }}
+          >
+            Mode: {serializationMode.toUpperCase()}
+          </span>
+        </div>
         <span
           style={{
             fontSize: "11px",
@@ -268,33 +485,227 @@ function LiveTelemetry({ form }: { form: UseFormResult }) {
         </span>
       </div>
 
-      <p style={{ margin: "4px 0" }}>
-        <strong>Current User:</strong> {String(userEmail || "(not entered)")}
-      </p>
-      <p style={{ margin: "4px 0" }}>
-        <strong>Submitting:</strong> {String(isSubmitting)}
-      </p>
-      <p style={{ margin: "4px 0" }}>
-        <strong>Telemetry Panel Renders:</strong> {renderCountRef.current}
-      </p>
+      {/* Live Value & Type Inspector */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "8px",
+          marginBottom: "12px",
+          padding: "10px",
+          background: "#1e293b",
+          borderRadius: "6px",
+        }}
+      >
+        <p style={{ margin: 0 }}>
+          <strong style={{ color: "#94a3b8" }}>User Email:</strong>{" "}
+          <span>{String(userEmail || "(empty)")}</span>
+        </p>
+        <p style={{ margin: 0 }}>
+          <strong style={{ color: "#94a3b8" }}>Age:</strong>{" "}
+          <span
+            style={{
+              color: typeof userAge === "number" ? "#34d399" : "#f59e0b",
+              fontWeight: 600,
+            }}
+          >
+            {String(userAge ?? "")} ({typeof userAge})
+          </span>
+        </p>
+        <p style={{ margin: 0 }}>
+          <strong style={{ color: "#94a3b8" }}>Agree Terms:</strong>{" "}
+          <span
+            style={{
+              color: typeof agreeToTerms === "boolean" ? "#34d399" : "#f59e0b",
+              fontWeight: 600,
+            }}
+          >
+            {String(agreeToTerms)} ({typeof agreeToTerms})
+          </span>
+        </p>
+        <p style={{ margin: 0 }}>
+          <strong style={{ color: "#94a3b8" }}>Newsletter:</strong>{" "}
+          <span
+            style={{
+              color: typeof newsletter === "boolean" ? "#34d399" : "#f59e0b",
+              fontWeight: 600,
+            }}
+          >
+            {newsletter === undefined
+              ? "omitted (undefined)"
+              : `${String(newsletter)} (${typeof newsletter})`}
+          </span>
+        </p>
+      </div>
 
-      <div style={{ marginTop: "10px" }}>
-        <span style={{ fontWeight: 600, color: "#94a3b8" }}>
-          Serialized Form Values:
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          color: "#64748b",
+          fontSize: "11px",
+          marginBottom: "12px",
+        }}
+      >
+        <span>
+          Submitting: <strong>{String(isSubmitting)}</strong>
         </span>
-        <pre
+        <span>
+          Telemetry Panel Renders: <strong>{renderCountRef.current}</strong>
+        </span>
+      </div>
+
+      {/* Dual Extraction Comparison Box (RFC 002) */}
+      <div style={{ marginTop: "10px" }}>
+        <div
           style={{
-            margin: "6px 0 0",
-            padding: "8px",
-            background: "#1e293b",
-            borderRadius: "6px",
-            overflowX: "auto",
-            fontSize: "12px",
-            color: "#a5f3fc",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "6px",
           }}
         >
-          {JSON.stringify(allValues, null, 2)}
-        </pre>
+          <span style={{ fontWeight: 600, color: "#cbd5e1" }}>
+            Dual-Mode Serialization Comparison (RFC 002):
+          </span>
+          <span style={{ fontSize: "10px", color: "#94a3b8" }}>
+            Simultaneous real-time extractions
+          </span>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "10px",
+          }}
+        >
+          {/* Native Baseline */}
+          <div
+            style={{
+              padding: "10px",
+              background: "#0b1329",
+              borderRadius: "6px",
+              border:
+                serializationMode === "native"
+                  ? "1.5px solid #38bdf8"
+                  : "1px solid #334155",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "6px",
+              }}
+            >
+              <span
+                style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8" }}
+              >
+                1. serialize() (Native FormData)
+              </span>
+              {serializationMode === "native" && (
+                <span
+                  style={{
+                    fontSize: "9px",
+                    background: "#0284c7",
+                    color: "#fff",
+                    padding: "1px 5px",
+                    borderRadius: "3px",
+                    fontWeight: 700,
+                  }}
+                >
+                  ACTIVE
+                </span>
+              )}
+            </div>
+            <pre
+              style={{
+                margin: 0,
+                fontSize: "11px",
+                color: "#93c5fd",
+                overflowX: "auto",
+                whiteSpace: "pre-wrap",
+                fontFamily: "monospace",
+              }}
+            >
+              {JSON.stringify(nativeSnapshot, null, 2)}
+            </pre>
+            <p
+              style={{
+                margin: "6px 0 0",
+                fontSize: "10px",
+                color: "#64748b",
+                lineHeight: 1.3,
+              }}
+            >
+              • Standard FormData strings. Unchecked checkboxes omitted per
+              WHATWG spec.
+            </p>
+          </div>
+
+          {/* Typed RFC 002 */}
+          <div
+            style={{
+              padding: "10px",
+              background: "#0b1329",
+              borderRadius: "6px",
+              border:
+                serializationMode === "typed"
+                  ? "1.5px solid #34d399"
+                  : "1px solid #334155",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "6px",
+              }}
+            >
+              <span
+                style={{ fontSize: "11px", fontWeight: 700, color: "#34d399" }}
+              >
+                2. serializeFields() (Typed RFC 002)
+              </span>
+              {serializationMode === "typed" && (
+                <span
+                  style={{
+                    fontSize: "9px",
+                    background: "#059669",
+                    color: "#fff",
+                    padding: "1px 5px",
+                    borderRadius: "3px",
+                    fontWeight: 700,
+                  }}
+                >
+                  ACTIVE
+                </span>
+              )}
+            </div>
+            <pre
+              style={{
+                margin: 0,
+                fontSize: "11px",
+                color: "#a7f3d0",
+                overflowX: "auto",
+                whiteSpace: "pre-wrap",
+                fontFamily: "monospace",
+              }}
+            >
+              {JSON.stringify(typedSnapshot, null, 2)}
+            </pre>
+            <p
+              style={{
+                margin: "6px 0 0",
+                fontSize: "10px",
+                color: "#64748b",
+                lineHeight: 1.3,
+              }}
+            >
+              • Numbers preserved via valueAsNumber. Unchecked coerced to false.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -308,6 +719,8 @@ function ShowcaseView() {
   );
   const [validationMode, setValidationMode] =
     useState<ValidationMode>("onChange");
+  const [serializationMode, setSerializationMode] =
+    useState<SerializationMode>("typed");
 
   const appRenders = useRef(0);
   appRenders.current++;
@@ -327,6 +740,7 @@ function ShowcaseView() {
   const form = useForm({
     schema,
     mode: validationMode,
+    serializationMode,
     subscribe: false,
     onSubmit: (values) => {
       console.log("SUBMIT SUCCESS:", values);
@@ -340,12 +754,12 @@ function ShowcaseView() {
   const teammates = useFieldArray({
     form,
     name: "teammates",
-    defaultValue: [{ email: "" }],
+    defaultValue: [{ email: "dev1@company.com" }],
   });
 
   return (
     <div>
-      {/* Configuration card: Adapter & Validation Mode */}
+      {/* Configuration card: Adapter, Validation Mode & Serialization Mode */}
       <div
         style={{
           display: "flex",
@@ -487,6 +901,71 @@ function ShowcaseView() {
           )}
         </div>
 
+        {/* Serialization Mode selector (RFC 002) */}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "10px",
+            alignItems: "center",
+            paddingTop: "8px",
+            borderTop: "1px solid #e2e8f0",
+          }}
+        >
+          <span style={{ fontWeight: 600, color: "#334155" }}>
+            Serialization:
+          </span>
+          <label
+            style={{
+              cursor: "pointer",
+              display: "flex",
+              gap: "4px",
+              color: serializationMode === "typed" ? "#059669" : "#475569",
+              fontWeight: serializationMode === "typed" ? 600 : 400,
+            }}
+          >
+            <input
+              type="radio"
+              name="serializationMode"
+              checked={serializationMode === "typed"}
+              onChange={() => setSerializationMode("typed")}
+            />
+            Typed (RFC 002)
+          </label>
+          <label
+            style={{
+              cursor: "pointer",
+              display: "flex",
+              gap: "4px",
+              color: serializationMode === "native" ? "#0284c7" : "#475569",
+              fontWeight: serializationMode === "native" ? 600 : 400,
+            }}
+          >
+            <input
+              type="radio"
+              name="serializationMode"
+              checked={serializationMode === "native"}
+              onChange={() => setSerializationMode("native")}
+            />
+            Native (FormData)
+          </label>
+          <span
+            style={{
+              fontSize: "10px",
+              padding: "2px 6px",
+              borderRadius: "4px",
+              backgroundColor:
+                serializationMode === "typed" ? "#d1fae5" : "#e0f2fe",
+              color: serializationMode === "typed" ? "#065f46" : "#0369a1",
+              fontWeight: 600,
+            }}
+          >
+            {serializationMode === "typed"
+              ? "Preserves numbers, booleans, and coerces unchecked checkboxes to false"
+              : "Raw strings matching browser FormData (omits unchecked checkboxes)"}
+          </span>
+        </div>
+
         {/* Helpful explanation of current mode */}
         <div
           style={{ fontSize: "11px", color: "#64748b", fontStyle: "italic" }}
@@ -514,7 +993,7 @@ function ShowcaseView() {
           name={USER_EMAIL}
           label="Your Email"
           type="email"
-          defaultValue=""
+          defaultValue="alex@company.com"
         />
 
         <InputField
@@ -522,16 +1001,54 @@ function ShowcaseView() {
           name={USER_PASSWORD}
           label="Your Password"
           type="password"
-          defaultValue=""
+          defaultValue="secret123"
         />
 
-        {/* Dynamic Field Array */}
+        {/* Number input to demonstrate typed value extraction */}
+        <InputField
+          form={form}
+          name={USER_AGE}
+          label="Your Age (Number input)"
+          type="number"
+          defaultValue="28"
+        />
+
+        {/* Standalone boolean checkboxes to demonstrate RFC 002 coercion */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+            padding: "12px",
+            background: "#f8fafc",
+            borderRadius: "6px",
+            border: "1px solid #e2e8f0",
+          }}
+        >
+          <CheckboxField
+            form={form}
+            name={AGREE_TO_TERMS}
+            label="I agree to the Terms of Service"
+            defaultChecked={true}
+          />
+          <CheckboxField
+            form={form}
+            name={NEWSLETTER}
+            label="Subscribe to weekly product newsletter"
+            description="Notice: In native mode, unchecked checkboxes are omitted completely. In typed mode, serialized as false."
+            defaultChecked={false}
+          />
+        </div>
+
+        {/* Dynamic Field Array (useFieldArray NF-017) */}
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              flexWrap: "wrap",
+              gap: "6px",
             }}
           >
             <label
@@ -543,22 +1060,61 @@ function ShowcaseView() {
             >
               Teammates ({teammates.fields.length})
             </label>
-            <button
-              type="button"
-              onClick={() => teammates.append({ email: "" })}
-              style={{
-                padding: "4px 10px",
-                backgroundColor: "#e0e7ff",
-                color: "#3730a3",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontWeight: 600,
-                fontSize: "12px",
-              }}
-            >
-              + Add Teammate
-            </button>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => teammates.prepend({ email: "" })}
+                style={{
+                  padding: "4px 8px",
+                  backgroundColor: "#f1f5f9",
+                  color: "#334155",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: "11px",
+                }}
+              >
+                + Prepend
+              </button>
+              <button
+                type="button"
+                onClick={() => teammates.append({ email: "" })}
+                style={{
+                  padding: "4px 10px",
+                  backgroundColor: "#2563eb",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: "11px",
+                }}
+              >
+                + Append
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  teammates.replace([
+                    { email: "alice@company.com" },
+                    { email: "bob@company.com" },
+                  ])
+                }
+                style={{
+                  padding: "4px 8px",
+                  backgroundColor: "#f1f5f9",
+                  color: "#334155",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: "11px",
+                }}
+              >
+                ↻ Replace (2)
+              </button>
+            </div>
           </div>
 
           {teammates.fields.map((field, index) => {
@@ -569,6 +1125,11 @@ function ShowcaseView() {
                 form={form}
                 name={fieldName}
                 index={index}
+                id={field.id}
+                isFirst={index === 0}
+                isLast={index === teammates.fields.length - 1}
+                onMoveUp={() => teammates.swap(index, index - 1)}
+                onMoveDown={() => teammates.swap(index, index + 1)}
                 onRemove={() => teammates.remove(index)}
               />
             );
@@ -610,7 +1171,7 @@ function ShowcaseView() {
         </div>
       </form>
 
-      <LiveTelemetry form={form} />
+      <LiveTelemetry form={form} serializationMode={serializationMode} />
     </div>
   );
 }

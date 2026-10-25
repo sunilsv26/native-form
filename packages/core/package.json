@@ -1,6 +1,6 @@
 {
   "name": "@native-form/core",
-  "version": "0.5.0-rc.1",
+  "version": "0.1.0",
   "description": "Framework-agnostic native HTML-first form runtime, discovery, and validation contracts.",
   "license": "MIT",
   "type": "module",

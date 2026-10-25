@@ -1,6 +1,6 @@
 {
   "name": "@native-form/valibot",
-  "version": "0.5.0-rc.1",
+  "version": "0.1.0",
   "description": "Valibot schema validation adapter for Native Form.",
   "license": "MIT",
   "type": "module",

@@ -509,6 +509,57 @@ Implementation files:
 - packages/valibot/test/adapter.contract.test.ts
 - packages/react/test/e2e.valibot.test.tsx
 
+---
+
+### NF-020 Async server-side validation pipeline
+
+- Type: feature
+- Priority: p1
+- Area: core-runtime / validation
+- Milestone: v0.5
+- Estimate: 2-3 days
+- Dependencies: NF-013, NF-019
+- Status: Completed (see RFC 004)
+
+Scope:
+
+- Add debounced input validation (`debounceMs`).
+- Add per-field `validating` state in `FieldState`, `FieldNode`, and `useField()`.
+- Add automatic cancellation of in-flight validation requests using `AbortController`.
+- Implement two-tier short-circuiting: skip async validation if sync schema check fails.
+- Provide direct field-level `asyncValidators` registration.
+
+Implementation files:
+
+- docs/rfcs/RFC_004_ASYNC_VALIDATION_PIPELINE.md
+- packages/core/src/runtime/Runtime.ts
+- packages/core/src/field/FieldNode.ts
+- packages/core/src/field/FieldState.ts
+- packages/core/src/validation/Validation.ts
+- packages/core/test/AsyncValidationPipeline.test.ts
+- packages/react/src/useField.ts
+- packages/react/src/useForm.ts
+- packages/react/test/useField.test.tsx
+
+---
+
+### NF-021 Multi-Step and Wizard Form Workflows
+
+- Type: feature / architecture
+- Priority: p2
+- Area: core-runtime / react
+- Milestone: v0.6
+- Estimate: 3-5 days
+- Dependencies: NF-018, NF-020
+- Status: Proposed (see RFC 005)
+
+Scope:
+
+- Design and author RFC 005 for multi-step / wizard form state.
+- Support both DOM-preserved (`hidden` fieldsets) and conditionally unmounted step workflows.
+- Provide step-scoped validation (`validateFields(names)`).
+- Introduce `useWizard` / step management ergonomics in `@native-form/react`.
+
 ## Suggested Sprint Order (v0.1)
 
 - Sprint 1: NF-001, NF-003

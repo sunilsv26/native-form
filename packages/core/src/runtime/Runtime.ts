@@ -84,6 +84,9 @@ export interface RuntimePublicApi<
   serialize(): NativeFormFlatValues;
   serializeFields(options?: SerializeFieldsOptions): NativeFormValues;
   validate(): Promise<ValidationResult<TValues>>;
+  validateFields(
+    fieldNames: readonly string[],
+  ): Promise<ValidationResult<TValues>>;
   submit(event?: SubmitEvent): Promise<ValidationResult<TValues>>;
   subscribe(listener: RuntimeListener): () => void;
   unsubscribe(listener: RuntimeListener): void;
@@ -347,6 +350,149 @@ export class Runtime<
     const validation = await this.runValidation(this.extractCurrentValues());
 
     return validation.result;
+  }
+
+  async validateFields(
+    fieldNames: readonly string[],
+  ): Promise<ValidationResult<TValues>> {
+    if (!this.form) {
+      throw new Error("Runtime is not mounted.");
+    }
+
+    const values = this.extractCurrentValues();
+    const normalizedTargetNames = new Set(fieldNames.map(normalizePath));
+
+    this.validationController?.abort();
+    const controller = new AbortController();
+    this.validationController = controller;
+    this.validating = true;
+
+    this.emitValidationEvent({
+      type: "validation:start",
+      values,
+    });
+
+    const context = {
+      form: this.form,
+      signal: controller.signal,
+      fields: this.getValidationFields(),
+    };
+
+    const result = await this.pipeline.validate(values, context);
+
+    if (this.validationController === controller) {
+      this.validating = false;
+    }
+
+    if (controller.signal.aborted) {
+      return {
+        success: false,
+        issues: [],
+      };
+    }
+
+    // Filter issues strictly to requested field names
+    const filteredIssues: ValidationIssue[] = [];
+    if (!result.success && result.issues) {
+      for (const issue of result.issues) {
+        if (normalizedTargetNames.has(normalizePath(issue.name))) {
+          filteredIssues.push(issue);
+        }
+      }
+    }
+
+    // Update errors for the targeted fields
+    for (const name of fieldNames) {
+      const issue = filteredIssues.find(
+        (iss) => normalizePath(iss.name) === normalizePath(name),
+      );
+      if (issue) {
+        this.errors[name] = issue.message;
+        const node = this.registry.get(name);
+        node?.setError(issue.message);
+      } else {
+        delete this.errors[name];
+        const normalized = normalizePath(name);
+        if (this.errors[normalized]) {
+          delete this.errors[normalized];
+        }
+        const node = this.registry.get(name);
+        node?.setError(undefined);
+      }
+    }
+
+    this.applyNativeErrors();
+
+    // Two-tier async validation for requested fields that passed sync validation
+    if (this.options.asyncValidators) {
+      const asyncPromises: Promise<void>[] = [];
+      const flat = (
+        this.serializationMode === "typed" ? this.serialize() : values
+      ) as unknown as NativeFormFlatValues;
+
+      for (const name of fieldNames) {
+        const issue = filteredIssues.find(
+          (iss) => normalizePath(iss.name) === normalizePath(name),
+        );
+        if (issue) continue; // Skip async check if sync check failed
+
+        const asyncValidator = this.getAsyncValidator(name);
+        if (!asyncValidator) continue;
+
+        const node = this.registry.get(name);
+        node?.setValidating(true);
+
+        const rawValue =
+          (values as Record<string, unknown>)[name] ?? flat[name];
+
+        asyncPromises.push(
+          (async () => {
+            try {
+              const err = await asyncValidator(rawValue, {
+                form: this.form!,
+                signal: controller.signal,
+              });
+              if (err) {
+                filteredIssues.push({ name, message: err });
+                this.errors[name] = err;
+                node?.setError(err);
+              }
+            } catch (error) {
+              const msg =
+                error instanceof Error ? error.message : String(error);
+              filteredIssues.push({ name, message: msg });
+              this.errors[name] = msg;
+              node?.setError(msg);
+            } finally {
+              node?.setValidating(false);
+            }
+          })(),
+        );
+      }
+
+      if (asyncPromises.length > 0) {
+        await Promise.all(asyncPromises);
+        this.applyNativeErrors();
+      }
+    }
+
+    this.emitValidationEvent({
+      type: "validation:end",
+      errors: { ...this.errors },
+      values,
+    });
+
+    if (filteredIssues.length > 0) {
+      return {
+        success: false,
+        issues: filteredIssues,
+      };
+    }
+
+    return {
+      success: true,
+      values: values as TValues,
+    };
   }
 
   private handleSubmit = (event: SubmitEvent) => {

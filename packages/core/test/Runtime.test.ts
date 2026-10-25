@@ -2085,6 +2085,96 @@ describe("Runtime", () => {
       });
     });
   });
+
+  describe("validateFields (RFC 005 / NF-021)", () => {
+    it("validates only the requested subset of fields and ignores errors on unrequested fields", async () => {
+      const form = createForm(`
+        <input name="step1.name" value="Alice" />
+        <input name="step1.email" value="invalid" />
+        <input name="step2.address" value="" />
+        <input name="step2.zip" value="" />
+      `);
+
+      const runtime = new Runtime({
+        validator: {
+          validate(values: Record<string, unknown>) {
+            const issues: { name: string; message: string }[] = [];
+            const flat = values as Record<string, string>;
+            if (flat["step1.email"] !== "alice@example.com") {
+              issues.push({ name: "step1.email", message: "Invalid email" });
+            }
+            if (!flat["step2.address"]) {
+              issues.push({ name: "step2.address", message: "Address required" });
+            }
+            if (!flat["step2.zip"]) {
+              issues.push({ name: "step2.zip", message: "Zip required" });
+            }
+            return issues.length > 0
+              ? { success: false as const, issues }
+              : { success: true as const, values };
+          },
+        },
+      });
+      runtime.mount(form);
+
+      // Validate Step 1 only
+      const step1Result = await runtime.validateFields(["step1.name", "step1.email"]);
+
+      expect(step1Result.success).toBe(false);
+      expect(step1Result.issues).toEqual([
+        { name: "step1.email", message: "Invalid email" },
+      ]);
+      expect(runtime.getFieldState("step1.email")?.error).toBe("Invalid email");
+      // Step 2 fields must NOT be flagged with errors
+      expect(runtime.getFieldState("step2.address")?.error).toBeUndefined();
+      expect(runtime.getFieldState("step2.zip")?.error).toBeUndefined();
+
+      // Now fix step1.email
+      const emailInput = form.querySelector('input[name="step1.email"]') as HTMLInputElement;
+      emailInput.value = "alice@example.com";
+      emailInput.dispatchEvent(new Event("input", { bubbles: true }));
+
+      // Re-validate Step 1
+      const step1FixedResult = await runtime.validateFields(["step1.name", "step1.email"]);
+
+      expect(step1FixedResult.success).toBe(true);
+      expect(step1FixedResult.issues).toBeUndefined();
+      expect(runtime.getFieldState("step1.email")?.error).toBeUndefined();
+
+      runtime.unmount();
+      form.remove();
+    });
+
+    it("resolves bracket notation and dot notation aliases in validateFields", async () => {
+      const form = createForm(`
+        <input name="user[first_name]" value="" />
+      `);
+
+      const runtime = new Runtime({
+        validator: {
+          validate(values: Record<string, unknown>) {
+            return {
+              success: false as const,
+              issues: [{ name: "user.first_name", message: "First name is required" }],
+            };
+          },
+        },
+      });
+      runtime.mount(form);
+
+      // Query with bracket notation
+      const result = await runtime.validateFields(["user[first_name]"]);
+
+      expect(result.success).toBe(false);
+      expect(result.issues).toEqual([
+        { name: "user.first_name", message: "First name is required" },
+      ]);
+      expect(runtime.getFieldState("user[first_name]")?.error).toBe("First name is required");
+
+      runtime.unmount();
+      form.remove();
+    });
+  });
 });
 
 function createForm(markup: string): HTMLFormElement {

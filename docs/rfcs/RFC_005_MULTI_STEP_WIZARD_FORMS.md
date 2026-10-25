@@ -278,3 +278,4 @@ flowchart LR
    - Add integration tests in `packages/react/test/useWizard.test.tsx`.
 4. **Phase 3 (Vite Studio Demo)**:
    - Add a Multi-Step Wizard demo tab in `examples/vite`.
+

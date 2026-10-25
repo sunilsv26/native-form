@@ -10,6 +10,7 @@ type RuntimePublicKey =
   | "serialize"
   | "serializeFields"
   | "validate"
+  | "validateFields"
   | "submit"
   | "subscribe"
   | "unsubscribe"

@@ -93,4 +93,79 @@ describe("useForm", () => {
 
     await view.cleanup();
   });
+
+  it("populates formState.values, onSubmit, and watch with nested object/array structures when nesting is nested", async () => {
+    let capturedForm!: ReturnType<typeof useForm>;
+    const onSubmit = vi.fn();
+
+    function NestedFormApp() {
+      const form = useForm({
+        nesting: "nested",
+        onSubmit,
+      });
+      capturedForm = form;
+
+      return (
+        <form ref={form.formRef}>
+          <input name="user.name" defaultValue="Alice" />
+          <input name="user.contact[email]" defaultValue="alice@example.com" />
+          <input name="items[0].title" defaultValue="Item 1" />
+          <input name="items[1].title" defaultValue="Item 2" />
+          <button type="submit">Submit</button>
+        </form>
+      );
+    }
+
+    const view = await renderReact(<NestedFormApp />);
+
+    expect(capturedForm.formState.values).toEqual({
+      user: {
+        name: "Alice",
+        contact: {
+          email: "alice@example.com",
+        },
+      },
+      items: [
+        { title: "Item 1" },
+        { title: "Item 2" },
+      ],
+    });
+
+    expect(capturedForm.watch()).toEqual({
+      user: {
+        name: "Alice",
+        contact: {
+          email: "alice@example.com",
+        },
+      },
+      items: [
+        { title: "Item 1" },
+        { title: "Item 2" },
+      ],
+    });
+
+    const button = view.container.querySelector("button")!;
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+    });
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      {
+        user: {
+          name: "Alice",
+          contact: {
+            email: "alice@example.com",
+          },
+        },
+        items: [
+          { title: "Item 1" },
+          { title: "Item 2" },
+        ],
+      },
+      expect.anything(),
+    );
+
+    await view.cleanup();
+  });
 });

@@ -4,6 +4,7 @@ import {
   FieldState,
   NativeFormValue,
   NativeFormValues,
+  normalizePath,
   RuntimeFormState,
 } from "@native-form/core";
 
@@ -25,12 +26,37 @@ export interface UseFieldResult extends FieldState {
   invalid: boolean;
 }
 
+function resolveSnapshotError(
+  errors: Record<string, string>,
+  name: string,
+): string | undefined {
+  if (errors[name] !== undefined) {
+    return errors[name];
+  }
+
+  const normalized = normalizePath(name);
+  if (errors[normalized] !== undefined) {
+    return errors[normalized];
+  }
+
+  for (const [key, msg] of Object.entries(errors)) {
+    if (normalizePath(key) === normalized) {
+      return msg;
+    }
+  }
+
+  return undefined;
+}
+
 function createUntrackedFieldState(
   name: string,
   values: NativeFormValues,
   errors: Record<string, string>,
 ): UseFieldResult {
-  const value = toFieldValue(values[name]);
+  const normalized = normalizePath(name);
+  const rawValue = values[name] ?? values[normalized];
+  const value = toFieldValue(rawValue);
+  const error = resolveSnapshotError(errors, name);
 
   return {
     name,
@@ -39,8 +65,8 @@ function createUntrackedFieldState(
     touched: false,
     initialValue: undefined,
     value,
-    error: errors[name],
-    invalid: Boolean(errors[name]),
+    error,
+    invalid: Boolean(error),
   };
 }
 
@@ -63,7 +89,10 @@ function getFieldSnapshot(
   name: string,
   formState: RuntimeFormState,
 ): UseFieldResult {
-  const field = formState.fields.find((entry) => entry.name === name);
+  const normalized = normalizePath(name);
+  const field = formState.fields.find(
+    (entry) => entry.name === name || normalizePath(entry.name) === normalized,
+  );
 
   if (!field) {
     return createUntrackedFieldState(
@@ -73,10 +102,12 @@ function getFieldSnapshot(
     );
   }
 
+  const error = resolveSnapshotError(formState.errors, name) ?? field.error;
+
   return {
     ...field,
-    error: formState.errors[name] ?? field.error,
-    invalid: Boolean(formState.errors[name] ?? field.error),
+    error,
+    invalid: Boolean(error),
   };
 }
 

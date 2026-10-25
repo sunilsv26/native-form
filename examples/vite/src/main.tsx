@@ -105,7 +105,7 @@ const yupLoginSchema = yup.object({
 });
 
 const USER_EMAIL = formPath("user", "email");
-const USER_PASSWORD = formPath("user", "password");
+const USER_PASSWORD = "user[password]"; // Demonstrating bracket notation RFC 003
 const USER_AGE = formPath("user", "age");
 const AGREE_TO_TERMS = "agreeToTerms";
 const NEWSLETTER = "newsletter";
@@ -411,9 +411,11 @@ function TeammateRow({
 function LiveTelemetry({
   form,
   serializationMode,
+  nestingMode = "nested",
 }: {
   form: UseFormResult;
   serializationMode: SerializationMode;
+  nestingMode?: "flat" | "nested";
 }) {
   const renderCountRef = useRef(0);
   renderCountRef.current++;
@@ -427,7 +429,9 @@ function LiveTelemetry({
 
   // Compare live native vs typed extractions directly via runtime API
   const nativeSnapshot = form.runtime ? form.runtime.serialize() : {};
-  const typedSnapshot = form.runtime ? form.runtime.serializeFields() : {};
+  const typedSnapshot = form.runtime
+    ? form.runtime.serializeFields({ nesting: nestingMode })
+    : {};
 
   return (
     <div
@@ -721,6 +725,7 @@ function ShowcaseView() {
     useState<ValidationMode>("onChange");
   const [serializationMode, setSerializationMode] =
     useState<SerializationMode>("typed");
+  const [nestingMode, setNestingMode] = useState<"nested" | "flat">("nested");
 
   const appRenders = useRef(0);
   appRenders.current++;
@@ -741,6 +746,7 @@ function ShowcaseView() {
     schema,
     mode: validationMode,
     serializationMode,
+    nesting: nestingMode,
     subscribe: false,
     onSubmit: (values) => {
       console.log("SUBMIT SUCCESS:", values);
@@ -966,6 +972,71 @@ function ShowcaseView() {
           </span>
         </div>
 
+        {/* Nesting Mode selector (RFC 003) */}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "10px",
+            alignItems: "center",
+            paddingTop: "8px",
+            borderTop: "1px solid #e2e8f0",
+          }}
+        >
+          <span style={{ fontWeight: 600, color: "#334155" }}>
+            Nesting (RFC 003):
+          </span>
+          <label
+            style={{
+              cursor: "pointer",
+              display: "flex",
+              gap: "4px",
+              color: nestingMode === "nested" ? "#7c3aed" : "#475569",
+              fontWeight: nestingMode === "nested" ? 600 : 400,
+            }}
+          >
+            <input
+              type="radio"
+              name="nestingMode"
+              checked={nestingMode === "nested"}
+              onChange={() => setNestingMode("nested")}
+            />
+            Nested Objects & Arrays
+          </label>
+          <label
+            style={{
+              cursor: "pointer",
+              display: "flex",
+              gap: "4px",
+              color: nestingMode === "flat" ? "#0284c7" : "#475569",
+              fontWeight: nestingMode === "flat" ? 600 : 400,
+            }}
+          >
+            <input
+              type="radio"
+              name="nestingMode"
+              checked={nestingMode === "flat"}
+              onChange={() => setNestingMode("flat")}
+            />
+            Flat Key-Value
+          </label>
+          <span
+            style={{
+              fontSize: "10px",
+              padding: "2px 6px",
+              borderRadius: "4px",
+              backgroundColor:
+                nestingMode === "nested" ? "#f3e8ff" : "#e0f2fe",
+              color: nestingMode === "nested" ? "#6b21a8" : "#0369a1",
+              fontWeight: 600,
+            }}
+          >
+            {nestingMode === "nested"
+              ? "Resolves dot & bracket notation (user[password], teammates[0]) into deep objects"
+              : "Preserves exact input name strings as flat dictionary keys"}
+          </span>
+        </div>
+
         {/* Helpful explanation of current mode */}
         <div
           style={{ fontSize: "11px", color: "#64748b", fontStyle: "italic" }}
@@ -999,7 +1070,7 @@ function ShowcaseView() {
         <InputField
           form={form}
           name={USER_PASSWORD}
-          label="Your Password"
+          label="Your Password (Bracket Notation: user[password])"
           type="password"
           defaultValue="secret123"
         />
@@ -1171,7 +1242,11 @@ function ShowcaseView() {
         </div>
       </form>
 
-      <LiveTelemetry form={form} serializationMode={serializationMode} />
+      <LiveTelemetry
+        form={form}
+        serializationMode={serializationMode}
+        nestingMode={nestingMode}
+      />
     </div>
   );
 }

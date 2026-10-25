@@ -90,6 +90,52 @@ describe("useField", () => {
 
     expect(error()).toBe("");
     expect(invalid()).toBe("false");
+    await view.cleanup();
+  });
+  it("interoperates seamlessly between bracket notation in DOM and dot notation in useField", async () => {
+    const validator = {
+      validate() {
+        return {
+          success: false as const,
+          issues: [{ name: "user.email", message: "Nested invalid email" }],
+        };
+      },
+    };
+
+    function BracketProbe() {
+      const form = useForm({ validator });
+      const email = useField({ form, name: "user.email" });
+
+      return (
+        <form ref={form.formRef} noValidate>
+          <input name="user[email]" defaultValue="bad" />
+          <button type="submit">Submit</button>
+          <p data-testid="error">{email.error ?? ""}</p>
+          <p data-testid="invalid">{String(email.invalid)}</p>
+        </form>
+      );
+    }
+
+    const view = await renderReact(<BracketProbe />);
+    const form = view.container.querySelector("form");
+
+    await act(async () => {
+      form?.dispatchEvent(
+        new Event("submit", {
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+      await Promise.resolve();
+    });
+
+    const error = () =>
+      view.container.querySelector("[data-testid='error']")?.textContent ?? "";
+    const invalid = () =>
+      view.container.querySelector("[data-testid='invalid']")?.textContent ?? "";
+
+    expect(error()).toBe("Nested invalid email");
+    expect(invalid()).toBe("true");
 
     await view.cleanup();
   });

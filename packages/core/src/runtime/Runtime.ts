@@ -669,7 +669,17 @@ export class Runtime<
   }
 
   getFieldState(name: string) {
-    return this.registry.get(name)?.getState();
+    let node = this.registry.get(name);
+    if (!node) {
+      const normalized = normalizePath(name);
+      for (const field of this.registry.values()) {
+        if (normalizePath(field.name) === normalized) {
+          node = field;
+          break;
+        }
+      }
+    }
+    return node?.getState();
   }
 
   getFieldStates() {
@@ -1022,12 +1032,16 @@ export class Runtime<
     const targetName = targetField.name;
 
     // 1. Update the active field being edited
-    const targetIssue = issueMap[targetName];
+    const targetIssue = resolveFieldError(issueMap, targetName);
     if (targetIssue) {
       this.errors[targetName] = targetIssue;
       targetField.setError(targetIssue);
     } else {
       delete this.errors[targetName];
+      const normalizedTarget = normalizePath(targetName);
+      if (this.errors[normalizedTarget]) {
+        delete this.errors[normalizedTarget];
+      }
       targetField.setError(undefined);
     }
 
@@ -1037,16 +1051,20 @@ export class Runtime<
     for (const otherField of this.registry.values()) {
       if (otherField === targetField) continue;
       const name = otherField.name;
-      const hadError = Boolean(this.errors[name]);
+      const hadError = Boolean(resolveFieldError(this.errors, name));
       const isTouched = otherField.isTouched;
 
       if (hadError || isTouched) {
-        const issue = issueMap[name];
+        const issue = resolveFieldError(issueMap, name);
         if (issue) {
           this.errors[name] = issue;
           otherField.setError(issue);
         } else {
           delete this.errors[name];
+          const normalizedOther = normalizePath(name);
+          if (this.errors[normalizedOther]) {
+            delete this.errors[normalizedOther];
+          }
           otherField.setError(undefined);
         }
       }
@@ -1070,7 +1088,11 @@ export class Runtime<
 
     this.errors = result.success ? {} : issuesToErrors(result.issues);
     for (const field of this.registry.values()) {
-      field.setError(this.errors[field.name]);
+      const error = resolveFieldError(this.errors, field.name);
+      if (error && this.errors[field.name] === undefined) {
+        this.errors[field.name] = error;
+      }
+      field.setError(error);
     }
     this.applyNativeErrors();
 
@@ -1104,6 +1126,28 @@ function issuesToErrors(issues: ValidationIssue[]): Record<string, string> {
   }
 
   return errors;
+}
+
+function resolveFieldError(
+  errors: Record<string, string>,
+  name: string,
+): string | undefined {
+  if (errors[name] !== undefined) {
+    return errors[name];
+  }
+
+  const normalized = normalizePath(name);
+  if (errors[normalized] !== undefined) {
+    return errors[normalized];
+  }
+
+  for (const [key, msg] of Object.entries(errors)) {
+    if (normalizePath(key) === normalized) {
+      return msg;
+    }
+  }
+
+  return undefined;
 }
 
 function toNativeFormElement(

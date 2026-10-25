@@ -48,6 +48,12 @@ export interface RuntimeOptions<
   serializationMode?: SerializationMode;
   serializeFieldsOptions?: SerializeFieldsOptions;
   nesting?: "flat" | "nested";
+  /**
+   * When true, preserves serialized values of fields that are removed from the DOM,
+   * merging them into subsequent serializations and final submit.
+   * @defaultValue false
+   */
+  preserveUnmountedValues?: boolean;
   schema?: SchemaLike<TValues>;
   validator?: Validator<TValues>;
   pipeline?: ValidationPipeline<TValues>;
@@ -79,6 +85,11 @@ export interface RuntimePublicApi<
 > {
   readonly fields: FieldState[];
   readonly serializationMode: SerializationMode;
+  /**
+   * Preserved values from fields that have been unmounted from the DOM
+   * when `preserveUnmountedValues: true` is configured.
+   */
+  readonly preservedValues: Record<string, NativeFormValue>;
   mount(form: HTMLFormElement): void;
   unmount(): void;
   serialize(): NativeFormFlatValues;
@@ -139,6 +150,10 @@ export class Runtime<
   private validating = false;
 
   private errors: Record<string, string> = {};
+
+  private preservedValuesStore: Record<string, NativeFormValue> = Object.create(null);
+
+  private isSyncingFields = false;
 
   private pipeline: ValidationPipeline<TValues>;
 
@@ -202,6 +217,7 @@ export class Runtime<
 
     this.form = undefined;
     this.errors = {};
+    this.preservedValuesStore = Object.create(null);
     this.submitting = false;
     this.validating = false;
 
@@ -254,17 +270,42 @@ export class Runtime<
     return undefined;
   }
 
-  serialize() {
+  serialize(): NativeFormFlatValues {
     if (!this.form) {
+      if (this.options.preserveUnmountedValues) {
+        return { ...this.preservedValuesStore };
+      }
       throw new Error("Runtime is not mounted.");
+    }
+
+    if (this.options.preserveUnmountedValues) {
+      if (!this.isSyncingFields) {
+        this.syncFields();
+      }
+      const live = this.serializer.serialize(this.form);
+      return {
+        ...this.preservedValuesStore,
+        ...live,
+      };
     }
 
     return this.serializer.serialize(this.form);
   }
 
   serializeFields(options?: SerializeFieldsOptions): NativeFormValues {
+    if (this.options.preserveUnmountedValues && this.form && !this.isSyncingFields) {
+      this.syncFields();
+    }
+
+    const effectiveOptions: SerializeFieldsOptions = {
+      ...this.options.serializeFieldsOptions,
+      ...options,
+    };
+    const nesting = effectiveOptions.nesting ?? this.options.nesting ?? "flat";
+
+    let nodes: Iterable<FieldNode> = this.registry.values();
     if (this.form) {
-      const nodes: FieldNode[] = [];
+      const nodeList: FieldNode[] = [];
       const nodeMap = new Map(this.registry.values().map((n) => [n.element, n]));
       for (const control of Array.from(this.form.elements)) {
         if (
@@ -273,12 +314,30 @@ export class Runtime<
             control instanceof HTMLTextAreaElement) &&
           control.name
         ) {
-          nodes.push(nodeMap.get(control) ?? new FieldNode(control));
+          nodeList.push(nodeMap.get(control) ?? new FieldNode(control));
         }
       }
-      return this.serializer.serializeFields(nodes, options);
+      nodes = nodeList;
     }
-    return this.serializer.serializeFields(this.registry.values(), options);
+
+    if (this.options.preserveUnmountedValues) {
+      const live = this.serializer.serializeFields(nodes, {
+        ...effectiveOptions,
+        nesting: "flat",
+      }) as Record<string, unknown>;
+
+      const merged = {
+        ...this.preservedValuesStore,
+        ...live,
+      };
+
+      if (nesting === "nested") {
+        return toNestedValues(merged) as NativeFormValues;
+      }
+      return merged as NativeFormValues;
+    }
+
+    return this.serializer.serializeFields(nodes, options);
   }
 
   get fields(): FieldState[] {
@@ -289,8 +348,22 @@ export class Runtime<
     return this.options.serializationMode ?? "native";
   }
 
+  get preservedValues(): Record<string, NativeFormValue> {
+    if (this.options.preserveUnmountedValues && this.form && !this.isSyncingFields) {
+      this.syncFields();
+    }
+    return Object.assign(Object.create(null), this.preservedValuesStore);
+  }
+
   private extractCurrentValues(): TValues {
     if (!this.form) {
+      if (this.options.preserveUnmountedValues) {
+        let res: NativeFormValues = { ...this.preservedValuesStore };
+        if (this.options.nesting === "nested") {
+          res = toNestedValues(res);
+        }
+        return res as unknown as TValues;
+      }
       return {} as TValues;
     }
 
@@ -781,6 +854,20 @@ export class Runtime<
     const { node, values, value } = snapshot;
     node.updateValue(value);
 
+    if (this.options.preserveUnmountedValues) {
+      if (
+        element.name !== "__proto__" &&
+        element.name !== "constructor" &&
+        element.name !== "prototype"
+      ) {
+        if (value !== undefined) {
+          this.preservedValuesStore[element.name] = value;
+        } else {
+          delete this.preservedValuesStore[element.name];
+        }
+      }
+    }
+
     const mode = this.options.mode ?? "onChange";
     const shouldValidate =
       mode === "onChange" ||
@@ -1051,6 +1138,7 @@ export class Runtime<
       });
     }
     this.errors = {};
+    this.preservedValuesStore = Object.create(null);
     this.applyNativeErrors();
 
     this.emitFormEvent({
@@ -1127,6 +1215,32 @@ export class Runtime<
         values: this.extractCurrentValues() as unknown as NativeFormValues,
       });
     }
+
+    if (this.options.preserveUnmountedValues) {
+      const nextPreserved: Record<string, NativeFormValue> = {};
+      let pChanged = false;
+      for (const [path, val] of Object.entries(this.preservedValuesStore)) {
+        const match = matchArrayItemPath(path, arrayName);
+        if (!match) {
+          nextPreserved[path] = val;
+          continue;
+        }
+        if (match.index === index) {
+          pChanged = true;
+          continue;
+        }
+        if (match.index > index) {
+          const shiftedPath = shiftArrayItemIndex(path, arrayName, index + 1, -1);
+          nextPreserved[shiftedPath] = val;
+          pChanged = true;
+        } else {
+          nextPreserved[path] = val;
+        }
+      }
+      if (pChanged) {
+        this.preservedValuesStore = nextPreserved;
+      }
+    }
   }
 
   swapArrayItems(arrayName: string, indexA: number, indexB: number): void {
@@ -1163,6 +1277,32 @@ export class Runtime<
         errors: { ...this.errors },
         values: this.extractCurrentValues() as unknown as NativeFormValues,
       });
+    }
+
+    if (this.options.preserveUnmountedValues) {
+      const nextPreserved: Record<string, NativeFormValue> = {};
+      let pChanged = false;
+      for (const [path, val] of Object.entries(this.preservedValuesStore)) {
+        const match = matchArrayItemPath(path, arrayName);
+        if (!match) {
+          nextPreserved[path] = val;
+          continue;
+        }
+        if (match.index === indexA) {
+          const newPath = remapArrayItemIndex(path, arrayName, indexA, indexB);
+          nextPreserved[newPath] = val;
+          pChanged = true;
+        } else if (match.index === indexB) {
+          const newPath = remapArrayItemIndex(path, arrayName, indexB, indexA);
+          nextPreserved[newPath] = val;
+          pChanged = true;
+        } else {
+          nextPreserved[path] = val;
+        }
+      }
+      if (pChanged) {
+        this.preservedValuesStore = nextPreserved;
+      }
     }
   }
 
@@ -1206,6 +1346,37 @@ export class Runtime<
         values: this.extractCurrentValues() as unknown as NativeFormValues,
       });
     }
+
+    if (this.options.preserveUnmountedValues) {
+      const nextPreserved: Record<string, NativeFormValue> = {};
+      let pChanged = false;
+      for (const [path, val] of Object.entries(this.preservedValuesStore)) {
+        const match = matchArrayItemPath(path, arrayName);
+        if (!match) {
+          nextPreserved[path] = val;
+          continue;
+        }
+        const idx = match.index;
+        if (idx === fromIndex) {
+          const newPath = remapArrayItemIndex(path, arrayName, fromIndex, toIndex);
+          nextPreserved[newPath] = val;
+          pChanged = true;
+        } else if (fromIndex < toIndex && idx > fromIndex && idx <= toIndex) {
+          const newPath = remapArrayItemIndex(path, arrayName, idx, idx - 1);
+          nextPreserved[newPath] = val;
+          pChanged = true;
+        } else if (fromIndex > toIndex && idx >= toIndex && idx < fromIndex) {
+          const newPath = remapArrayItemIndex(path, arrayName, idx, idx + 1);
+          nextPreserved[newPath] = val;
+          pChanged = true;
+        } else {
+          nextPreserved[path] = val;
+        }
+      }
+      if (pChanged) {
+        this.preservedValuesStore = nextPreserved;
+      }
+    }
   }
 
   insertArrayItem(arrayName: string, index: number): void {
@@ -1237,6 +1408,28 @@ export class Runtime<
         values: this.extractCurrentValues() as unknown as NativeFormValues,
       });
     }
+
+    if (this.options.preserveUnmountedValues) {
+      const nextPreserved: Record<string, NativeFormValue> = {};
+      let pChanged = false;
+      for (const [path, val] of Object.entries(this.preservedValuesStore)) {
+        const match = matchArrayItemPath(path, arrayName);
+        if (!match) {
+          nextPreserved[path] = val;
+          continue;
+        }
+        if (match.index >= index) {
+          const shiftedPath = shiftArrayItemIndex(path, arrayName, index, 1);
+          nextPreserved[shiftedPath] = val;
+          pChanged = true;
+        } else {
+          nextPreserved[path] = val;
+        }
+      }
+      if (pChanged) {
+        this.preservedValuesStore = nextPreserved;
+      }
+    }
   }
 
   getFormState(): RuntimeFormState {
@@ -1266,7 +1459,14 @@ export class Runtime<
 
   getFieldValue(name: string): NativeFormValue | undefined {
     if (!this.form) {
+      if (this.options.preserveUnmountedValues) {
+        return this.preservedValuesStore[name];
+      }
       return undefined;
+    }
+
+    if (this.options.preserveUnmountedValues && !this.isSyncingFields) {
+      this.syncFields();
     }
 
     let node = this.registry.get(name);
@@ -1294,6 +1494,18 @@ export class Runtime<
     }
 
     if (!node) {
+      if (this.options.preserveUnmountedValues) {
+        if (name in this.preservedValuesStore) {
+          return this.preservedValuesStore[name];
+        }
+        const normalizedTarget = normalizePath(name);
+        for (const [key, val] of Object.entries(this.preservedValuesStore)) {
+          if (normalizePath(key) === normalizedTarget) {
+            return val;
+          }
+        }
+      }
+
       if (this.options.nesting === "nested") {
         const nested = this.extractCurrentValues();
         const resolved = getByPath(nested, name);
@@ -1364,45 +1576,64 @@ export class Runtime<
   }
 
   private syncFields(): void {
-    if (!this.form) {
+    if (!this.form || this.isSyncingFields) {
       return;
     }
 
-    const previousFields = this.registry.values();
-    const previousFieldMap = new Map(
-      previousFields.map((field) => [field.name, field]),
-    );
+    this.isSyncingFields = true;
+    try {
+      const previousFields = this.registry.values();
+      const previousFieldMap = new Map(
+        previousFields.map((field) => [field.name, field]),
+      );
 
-    const activeControlNames = new Set<string>();
-    for (const control of Array.from(this.form.elements)) {
-      if (
-        (control instanceof HTMLInputElement ||
-          control instanceof HTMLSelectElement ||
-          control instanceof HTMLTextAreaElement) &&
-        control.name
-      ) {
-        activeControlNames.add(control.name);
+      const activeControlNames = new Set<string>();
+      for (const control of Array.from(this.form.elements)) {
+        if (
+          (control instanceof HTMLInputElement ||
+            control instanceof HTMLSelectElement ||
+            control instanceof HTMLTextAreaElement) &&
+          control.name
+        ) {
+          activeControlNames.add(control.name);
+        }
       }
-    }
 
-    for (const field of previousFields) {
-      if (!activeControlNames.has(field.name)) {
-        this.fieldErrorRenderer.applyErrors([field], {});
-        delete this.errors[field.name];
+      for (const field of previousFields) {
+        if (!activeControlNames.has(field.name)) {
+          if (this.options.preserveUnmountedValues) {
+            const val = field.value as NativeFormValue;
+            if (
+              field.name !== "__proto__" &&
+              field.name !== "constructor" &&
+              field.name !== "prototype"
+            ) {
+              if (val !== undefined) {
+                this.preservedValuesStore[field.name] = val;
+              } else {
+                delete this.preservedValuesStore[field.name];
+              }
+            }
+          }
+          this.fieldErrorRenderer.applyErrors([field], {});
+          delete this.errors[field.name];
+        }
       }
-    }
 
-    this.discovery.discover(this.form, this.registry);
+      this.discovery.discover(this.form, this.registry);
 
-    const values = this.extractCurrentValues() as unknown as NativeFormFlatValues;
+      const values = this.extractCurrentValues() as unknown as NativeFormFlatValues;
 
-    for (const field of this.registry.values()) {
-      if (
-        !previousFieldMap.has(field.name) ||
-        previousFieldMap.get(field.name) !== field
-      ) {
-        field.register(values[field.name]);
+      for (const field of this.registry.values()) {
+        if (
+          !previousFieldMap.has(field.name) ||
+          previousFieldMap.get(field.name) !== field
+        ) {
+          field.register(values[field.name]);
+        }
       }
+    } finally {
+      this.isSyncingFields = false;
     }
   }
 

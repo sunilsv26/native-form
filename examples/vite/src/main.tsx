@@ -178,6 +178,8 @@ function InputField({
   defaultValue?: string;
 }) {
   const field = useField({ form, name });
+  const restoredValue =
+    (form.runtime?.preservedValues?.[name] as string | undefined) ?? defaultValue;
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
@@ -191,7 +193,7 @@ function InputField({
         id={name}
         name={name}
         type={type}
-        defaultValue={defaultValue}
+        defaultValue={restoredValue}
         style={{
           width: "100%",
           padding: "8px 12px",
@@ -229,6 +231,13 @@ function CheckboxField({
 }) {
   const field = useField({ form, name });
   const id = useId();
+  const preserved = form.runtime?.preservedValues?.[name];
+  const restoredChecked =
+    typeof preserved === "boolean"
+      ? preserved
+      : preserved === "on"
+      ? true
+      : defaultChecked;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
@@ -248,7 +257,7 @@ function CheckboxField({
           id={id}
           name={name}
           type="checkbox"
-          defaultChecked={defaultChecked}
+          defaultChecked={restoredChecked}
           style={{ width: "16px", height: "16px", cursor: "pointer" }}
         />
         {label}
@@ -1769,6 +1778,7 @@ function WizardShowcaseView() {
     schema: zodResolver(wizardZodSchema),
     mode: "onBlur",
     debounceMs: 250,
+    preserveUnmountedValues: true,
     asyncValidators: {
       email: async (val, ctx) => {
         await new Promise((resolve) => setTimeout(resolve, 400));
@@ -1889,7 +1899,7 @@ function WizardShowcaseView() {
         <p style={{ margin: 0, fontSize: "12px", color: "#64748b", lineHeight: 1.5 }}>
           {pattern === "dom"
             ? "Pattern 1 retains unmounted step inputs in the DOM using <fieldset hidden>. Recommended for zero overhead, accessibility, and retaining browser undo/autofill stacks."
-            : "Pattern 2 dynamically mounts only the active step. Advance navigation is guarded by runtime.validateFields() before allowing transition."}
+            : "Pattern 2 conditionally unmounts inactive step DOM nodes. With preserveUnmountedValues: true enabled, Native Form caches unmounted step data in memory so values, navigation checks, and review summaries persist seamlessly."}
         </p>
       </div>
 
@@ -2010,155 +2020,154 @@ function WizardShowcaseView() {
         }}
       >
         {/* Step 1: Account Info */}
-        <fieldset
-          hidden={pattern === "dom" ? wizard.currentStep !== 0 : undefined}
-          style={{
-            display:
-              pattern === "component" && wizard.currentStep !== 0
-                ? "none"
-                : "flex",
-            flexDirection: "column",
-            gap: "14px",
-            border: "none",
-            padding: 0,
-            margin: 0,
-          }}
-        >
-          <div style={{ borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
-            <h2 style={{ margin: "0 0 4px", fontSize: "16px", color: "#0f172a" }}>
-              👤 Personal & Account Information
-            </h2>
-            <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>
-              Fill in your account identity. Try <code>taken@company.com</code> to test server-side async email checking.
-            </p>
-          </div>
+        {(pattern === "dom" || wizard.currentStep === 0) && (
+          <fieldset
+            hidden={pattern === "dom" ? wizard.currentStep !== 0 : undefined}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+              border: "none",
+              padding: 0,
+              margin: 0,
+            }}
+          >
+            <div style={{ borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
+              <h2 style={{ margin: "0 0 4px", fontSize: "16px", color: "#0f172a" }}>
+                👤 Personal & Account Information
+              </h2>
+              <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>
+                Fill in your account identity. Try <code>taken@company.com</code> to test server-side async email checking.
+              </p>
+            </div>
 
-          <InputField
-            form={form}
-            name="fullName"
-            label="Full Name"
-            defaultValue="Alex Mercer"
-          />
+            <InputField
+              form={form}
+              name="fullName"
+              label="Full Name"
+              defaultValue="Alex Mercer"
+            />
 
-          <InputField
-            form={form}
-            name="email"
-            label="Email Address"
-            type="email"
-            defaultValue="alex@company.com"
-          />
+            <InputField
+              form={form}
+              name="email"
+              label="Email Address"
+              type="email"
+              defaultValue="alex@company.com"
+            />
 
-          <InputField
-            form={form}
-            name="password"
-            label="Account Password"
-            type="password"
-            defaultValue="Pass1234!"
-          />
-        </fieldset>
+            <InputField
+              form={form}
+              name="password"
+              label="Account Password"
+              type="password"
+              defaultValue="Pass1234!"
+            />
+          </fieldset>
+        )}
 
         {/* Step 2: Shipping Details */}
-        <fieldset
-          hidden={pattern === "dom" ? wizard.currentStep !== 1 : undefined}
-          style={{
-            display:
-              pattern === "component" && wizard.currentStep !== 1
-                ? "none"
-                : "flex",
-            flexDirection: "column",
-            gap: "14px",
-            border: "none",
-            padding: 0,
-            margin: 0,
-          }}
-        >
-          <div style={{ borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
-            <h2 style={{ margin: "0 0 4px", fontSize: "16px", color: "#0f172a" }}>
-              🚚 Shipping Destination
-            </h2>
-            <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>
-              Provide the delivery address and preferred shipping priority.
-            </p>
-          </div>
-
-          <InputField
-            form={form}
-            name="address"
-            label="Street Address"
-            defaultValue="742 Evergreen Terrace"
-          />
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <InputField
-              form={form}
-              name="city"
-              label="City"
-              defaultValue="Springfield"
-            />
-            <InputField
-              form={form}
-              name="zipCode"
-              label="ZIP Code (5 digits)"
-              defaultValue="97477"
-            />
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <label style={{ fontSize: "14px", fontWeight: 600, color: "#1e293b" }}>
-              Delivery Speed
-            </label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
-              {[
-                { id: "standard", label: "Standard", sub: "3-5 days (Free)" },
-                { id: "express", label: "Express", sub: "1-2 days ($9.99)" },
-                { id: "overnight", label: "Overnight", sub: "Next day ($19.99)" },
-              ].map((speed) => (
-                <label
-                  key={speed.id}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    padding: "8px",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "12px",
-                    backgroundColor: "#f8fafc",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
-                    <input
-                      type="radio"
-                      name="deliverySpeed"
-                      value={speed.id}
-                      defaultChecked={speed.id === "standard"}
-                    />
-                    <strong style={{ color: "#0f172a" }}>{speed.label}</strong>
-                  </div>
-                  <span style={{ fontSize: "11px", color: "#64748b", paddingLeft: "18px" }}>
-                    {speed.sub}
-                  </span>
-                </label>
-              ))}
+        {(pattern === "dom" || wizard.currentStep === 1) && (
+          <fieldset
+            hidden={pattern === "dom" ? wizard.currentStep !== 1 : undefined}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+              border: "none",
+              padding: 0,
+              margin: 0,
+            }}
+          >
+            <div style={{ borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
+              <h2 style={{ margin: "0 0 4px", fontSize: "16px", color: "#0f172a" }}>
+                🚚 Shipping Destination
+              </h2>
+              <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>
+                Provide the delivery address and preferred shipping priority.
+              </p>
             </div>
-          </div>
-        </fieldset>
+
+            <InputField
+              form={form}
+              name="address"
+              label="Street Address"
+              defaultValue="742 Evergreen Terrace"
+            />
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <InputField
+                form={form}
+                name="city"
+                label="City"
+                defaultValue="Springfield"
+              />
+              <InputField
+                form={form}
+                name="zipCode"
+                label="ZIP Code (5 digits)"
+                defaultValue="97477"
+              />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <label style={{ fontSize: "14px", fontWeight: 600, color: "#1e293b" }}>
+                Delivery Speed
+              </label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
+                {[
+                  { id: "standard", label: "Standard", sub: "3-5 days (Free)" },
+                  { id: "express", label: "Express", sub: "1-2 days ($9.99)" },
+                  { id: "overnight", label: "Overnight", sub: "Next day ($19.99)" },
+                ].map((speed) => (
+                  <label
+                    key={speed.id}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      padding: "8px",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      backgroundColor: "#f8fafc",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                      <input
+                        type="radio"
+                        name="deliverySpeed"
+                        value={speed.id}
+                        defaultChecked={
+                          speed.id ===
+                          ((form.runtime?.preservedValues?.["deliverySpeed"] as string | undefined) ?? "standard")
+                        }
+                      />
+                      <strong style={{ color: "#0f172a" }}>{speed.label}</strong>
+                    </div>
+                    <span style={{ fontSize: "11px", color: "#64748b", paddingLeft: "18px" }}>
+                      {speed.sub}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </fieldset>
+        )}
 
         {/* Step 3: Review & Confirmation */}
-        <fieldset
-          hidden={pattern === "dom" ? wizard.currentStep !== 2 : undefined}
-          style={{
-            display:
-              pattern === "component" && wizard.currentStep !== 2
-                ? "none"
-                : "flex",
-            flexDirection: "column",
-            gap: "14px",
-            border: "none",
-            padding: 0,
-            margin: 0,
-          }}
-        >
+        {(pattern === "dom" || wizard.currentStep === 2) && (
+          <fieldset
+            hidden={pattern === "dom" ? wizard.currentStep !== 2 : undefined}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+              border: "none",
+              padding: 0,
+              margin: 0,
+            }}
+          >
           <div style={{ borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
             <h2 style={{ margin: "0 0 4px", fontSize: "16px", color: "#0f172a" }}>
               📋 Review & Final Confirmation
@@ -2221,6 +2230,7 @@ function WizardShowcaseView() {
             defaultChecked={false}
           />
         </fieldset>
+        )}
 
         {/* Wizard Navigation Action Controls */}
         <div

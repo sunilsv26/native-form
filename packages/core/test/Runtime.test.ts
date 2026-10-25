@@ -2175,6 +2175,226 @@ describe("Runtime", () => {
       form.remove();
     });
   });
+
+  describe("preserveUnmountedValues (RFC 005 / NF-021)", () => {
+    it("discards unmounted values when preserveUnmountedValues is false (default)", async () => {
+      const form = createForm(`
+        <input name="step1" value="hello" />
+        <input name="step2" value="world" />
+      `);
+
+      const runtime = new Runtime();
+      runtime.mount(form);
+
+      expect(runtime.serialize()).toEqual({
+        step1: "hello",
+        step2: "world",
+      });
+
+      const input1 = form.elements.namedItem("step1") as HTMLInputElement;
+      input1.remove();
+
+      await Promise.resolve();
+
+      expect(runtime.serialize()).toEqual({
+        step2: "world",
+      });
+      expect(runtime.preservedValues).toEqual({});
+      expect(runtime.getFieldValue("step1")).toBeUndefined();
+
+      runtime.unmount();
+      form.remove();
+    });
+
+    it("preserves unmounted values and merges with live values when preserveUnmountedValues is true", async () => {
+      const form = createForm(`
+        <input name="step1" value="hello" />
+        <input name="step2" value="world" />
+      `);
+
+      const runtime = new Runtime({
+        preserveUnmountedValues: true,
+      });
+      runtime.mount(form);
+
+      const input1 = form.elements.namedItem("step1") as HTMLInputElement;
+      input1.remove();
+
+      expect(runtime.preservedValues).toEqual({
+        step1: "hello",
+      });
+      expect(runtime.serialize()).toEqual({
+        step1: "hello",
+        step2: "world",
+      });
+      expect(runtime.getFieldValue("step1")).toBe("hello");
+
+      runtime.unmount();
+      form.remove();
+    });
+
+    it("allows live DOM values to take precedence when field remounts and updates preserved value on unmount", async () => {
+      const form = createForm(`
+        <input name="step1" value="first_val" />
+      `);
+
+      const runtime = new Runtime({
+        preserveUnmountedValues: true,
+      });
+      runtime.mount(form);
+
+      const input1 = form.elements.namedItem("step1") as HTMLInputElement;
+      input1.remove();
+
+      expect(runtime.preservedValues.step1).toBe("first_val");
+
+      // Remount field with updated value
+      const remountedInput = document.createElement("input");
+      remountedInput.name = "step1";
+      remountedInput.value = "second_val";
+      form.appendChild(remountedInput);
+
+      expect(runtime.serialize().step1).toBe("second_val");
+      expect(runtime.getFieldValue("step1")).toBe("second_val");
+
+      // Remove again
+      remountedInput.remove();
+      expect(runtime.preservedValues.step1).toBe("second_val");
+      expect(runtime.serialize().step1).toBe("second_val");
+
+      runtime.unmount();
+      form.remove();
+    });
+
+    it("preserves typed values with serializeFields", async () => {
+      const form = createForm(`
+        <input type="number" name="age" value="28" />
+        <input type="checkbox" name="active" checked />
+        <input name="live" value="now" />
+      `);
+
+      const runtime = new Runtime({
+        serializationMode: "typed",
+        preserveUnmountedValues: true,
+      });
+      runtime.mount(form);
+
+      const ageInput = form.elements.namedItem("age") as HTMLInputElement;
+      const activeInput = form.elements.namedItem("active") as HTMLInputElement;
+      ageInput.remove();
+      activeInput.remove();
+
+      const result = runtime.serializeFields();
+      expect(result).toEqual({
+        age: 28,
+        active: true,
+        live: "now",
+      });
+
+      runtime.unmount();
+      form.remove();
+    });
+
+    it("supports preserveUnmountedValues with nested object paths and full submit", async () => {
+      const form = createForm(`
+        <input name="account.email" value="alex@example.com" />
+        <input name="account.password" value="secret123" />
+      `);
+
+      let submittedValues: Record<string, unknown> | undefined;
+
+      const runtime = new Runtime({
+        serializationMode: "typed",
+        nesting: "nested",
+        preserveUnmountedValues: true,
+        onSubmit: (values) => {
+          submittedValues = values;
+        },
+      });
+      runtime.mount(form);
+
+      // Unmount Step 1 inputs
+      (form.elements.namedItem("account.email") as HTMLElement).remove();
+      (form.elements.namedItem("account.password") as HTMLElement).remove();
+
+      // Mount Step 2 input
+      const step2Input = document.createElement("input");
+      step2Input.name = "shipping.address";
+      step2Input.value = "123 Main St";
+      form.appendChild(step2Input);
+
+      const extracted = runtime.getFormState().values;
+      expect(extracted).toEqual({
+        account: {
+          email: "alex@example.com",
+          password: "secret123",
+        },
+        shipping: {
+          address: "123 Main St",
+        },
+      });
+
+      await runtime.submit();
+      expect(submittedValues).toEqual({
+        account: {
+          email: "alex@example.com",
+          password: "secret123",
+        },
+        shipping: {
+          address: "123 Main St",
+        },
+      });
+
+      runtime.unmount();
+      form.remove();
+    });
+
+    it("clears preserved values when form is reset", async () => {
+      const form = createForm(`
+        <input name="step1" value="temp" />
+      `);
+
+      const runtime = new Runtime({
+        preserveUnmountedValues: true,
+      });
+      runtime.mount(form);
+
+      const input = form.elements.namedItem("step1") as HTMLInputElement;
+      input.remove();
+
+      expect(runtime.preservedValues.step1).toBe("temp");
+
+      form.dispatchEvent(new Event("reset"));
+      // Wait for reset queueMicrotask
+      await Promise.resolve();
+
+      expect(runtime.preservedValues).toEqual({});
+
+      runtime.unmount();
+      form.remove();
+    });
+
+    it("protects against prototype pollution keys", async () => {
+      const form = createForm(`
+        <input name="__proto__" value="polluted" />
+        <input name="normal" value="valid" />
+      `);
+
+      const runtime = new Runtime({
+        preserveUnmountedValues: true,
+      });
+      runtime.mount(form);
+
+      const protoInput = form.elements.namedItem("__proto__") as HTMLInputElement;
+      protoInput.remove();
+
+      expect(runtime.preservedValues.__proto__).toBeUndefined();
+      expect(({} as any).polluted).toBeUndefined();
+
+      runtime.unmount();
+      form.remove();
+    });
+  });
 });
 
 function createForm(markup: string): HTMLFormElement {

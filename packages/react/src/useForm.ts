@@ -104,6 +104,7 @@ export function useForm<
       serializationMode: options.serializationMode,
       serializeFieldsOptions: options.serializeFieldsOptions,
       nesting: options.nesting,
+      preserveUnmountedValues: options.preserveUnmountedValues,
       debounceMs: options.debounceMs,
       asyncValidators: options.asyncValidators,
       schema: schemaRef.current as SchemaLike<TValues> | undefined,

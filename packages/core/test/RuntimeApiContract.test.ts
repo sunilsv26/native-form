@@ -28,6 +28,7 @@ describe("Runtime public API contract", () => {
     expect(typeof runtime.insertArrayItem).toBe("function");
     expect(runtime.serializationMode).toBe("native");
     expect(Array.isArray(runtime.fields)).toBe(true);
+    expect(typeof runtime.preservedValues).toBe("object");
   });
 
   it("returns unsubscribe function from subscribe", () => {

@@ -6,7 +6,7 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "test": "turbo test",
-    "verify": "turbo test && turbo build",
+    "verify": "turbo build && turbo test",
     "release": "pnpm verify && pnpm publish -r --access public",
     "type:audit": "pnpm -w exec tsc -p packages/core/tsconfig.json --emitDeclarationOnly && pnpm -w exec tsc -p packages/react/tsconfig.json --emitDeclarationOnly && pnpm -w exec tsc -p packages/zod/tsconfig.json --emitDeclarationOnly && pnpm -w exec tsc -p packages/yup/tsconfig.json --emitDeclarationOnly && pnpm -w exec tsc -p packages/valibot/tsconfig.json --emitDeclarationOnly",
     "api:extract": "pnpm run type:audit && pnpm -w exec api-extractor run --local --verbose --config packages/core/api-extractor.json && pnpm -w exec api-extractor run --local --verbose --config packages/react/api-extractor.json && pnpm -w exec api-extractor run --local --verbose --config packages/zod/api-extractor.json && pnpm -w exec api-extractor run --local --verbose --config packages/yup/api-extractor.json && pnpm -w exec api-extractor run --local --verbose --config packages/valibot/api-extractor.json",

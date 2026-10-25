@@ -85,4 +85,41 @@ describe("zodResolver", () => {
       ],
     });
   });
+
+  it("resolves bracket notation and array indexes into nested objects (RFC 003)", async () => {
+    const schema = z.object({
+      user: z.object({
+        profile: z.object({
+          name: z.string(),
+        }),
+      }),
+      items: z.array(
+        z.object({
+          title: z.string(),
+        }),
+      ),
+    });
+    const resolver = zodResolver(schema);
+
+    const result = await resolver.validate(
+      {
+        "user[profile][name]": "Alice",
+        "items[0][title]": "Task A",
+        "items[1].title": "Task B",
+      },
+      {} as never,
+    );
+
+    expect(result).toEqual({
+      success: true,
+      values: {
+        user: {
+          profile: {
+            name: "Alice",
+          },
+        },
+        items: [{ title: "Task A" }, { title: "Task B" }],
+      },
+    });
+  });
 });

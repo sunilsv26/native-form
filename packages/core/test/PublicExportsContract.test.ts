@@ -6,12 +6,16 @@ type CoreValueExportKey =
   | "createValidationPipeline"
   | "createValidator"
   | "formPath"
+  | "getByPath"
   | "isArrayItemPath"
   | "matchArrayItemPath"
+  | "normalizePath"
   | "parseArrayItemPath"
   | "remapArrayItemIndex"
+  | "setByPath"
   | "shiftArrayItemIndex"
-  | "splitPath";
+  | "splitPath"
+  | "toNestedValues";
 
 type CoreModule = typeof import("../src/index");
 type ActualCoreValueKeys = keyof CoreModule;

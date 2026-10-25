@@ -1,4 +1,5 @@
 import { FieldNode } from "../field/FieldNode";
+import { toNestedValues } from "../Path";
 import {
   NativeFormElement,
   NativeFormFlatValues,
@@ -29,6 +30,14 @@ export interface SerializeFieldsOptions {
    * @defaultValue 'typed'
    */
   valueMode?: "typed" | "raw";
+
+  /**
+   * Output structure format:
+   * - 'flat': preserves exact input field names as top-level keys.
+   * - 'nested': resolves dot and bracket notation into deeply nested objects and arrays.
+   * @defaultValue 'flat'
+   */
+  nesting?: "flat" | "nested";
 
   /**
    * Custom value extractors for specific element tag names or input types.
@@ -72,6 +81,7 @@ export class Serializer {
       coerceUncheckedCheckboxes = true,
       valueMode = "typed",
       customSerializers = {},
+      nesting = "flat",
     } = options;
 
     const values: Record<string, unknown> = {};
@@ -159,6 +169,10 @@ export class Serializer {
       } else {
         values[name] = value;
       }
+    }
+
+    if (nesting === "nested") {
+      return toNestedValues(values) as NativeFormValues;
     }
 
     return values as NativeFormValues;

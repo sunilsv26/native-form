@@ -25,4 +25,27 @@ describe("yupResolver", () => {
     expect(result.success).toBe(true);
     expect((result.values as any).foo).toBe("bar");
   });
+
+  it("resolves bracket notation and array indexes into nested structures (RFC 003)", async () => {
+    const schema = yup.object({
+      client: yup.object({
+        name: yup.string().required(),
+      }),
+      roles: yup.array().of(yup.string().required()),
+    });
+
+    const resolver = yupResolver(schema);
+
+    const result = await resolver.validate({
+      "client[name]": "Acme Corp",
+      "roles[0]": "admin",
+      "roles[1]": "developer",
+    } as any);
+
+    expect(result.success).toBe(true);
+    expect(result.values).toEqual({
+      client: { name: "Acme Corp" },
+      roles: ["admin", "developer"],
+    });
+  });
 });

@@ -341,5 +341,46 @@ describe("Serializer", () => {
         colors: ["red", "blue"],
       });
     });
+
+    it("resolves nested objects and arrays when nesting is 'nested' (RFC 003)", () => {
+      const name = document.createElement("input");
+      name.name = "user.profile.name";
+      name.value = "Alice";
+
+      const age = document.createElement("input");
+      age.name = "user[profile][age]";
+      age.type = "number";
+      age.value = "28";
+
+      const task0 = document.createElement("input");
+      task0.name = "tasks[0].title";
+      task0.value = "First";
+
+      const task1 = document.createElement("input");
+      task1.name = "tasks[1].title";
+      task1.value = "Second";
+
+      const fields = [
+        new FieldNode(name),
+        new FieldNode(age),
+        new FieldNode(task0),
+        new FieldNode(task1),
+      ];
+
+      const serializer = new Serializer();
+
+      expect(serializer.serializeFields(fields, { nesting: "nested" })).toEqual({
+        user: {
+          profile: {
+            name: "Alice",
+            age: 28,
+          },
+        },
+        tasks: [
+          { title: "First" },
+          { title: "Second" },
+        ],
+      });
+    });
   });
 });

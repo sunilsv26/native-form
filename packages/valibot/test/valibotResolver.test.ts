@@ -121,5 +121,32 @@ describe("valibotResolver", () => {
       ],
     });
   });
+
+  it("resolves bracket notation and array indexes into nested structures (RFC 003)", async () => {
+    const schema = v.object({
+      settings: v.object({
+        theme: v.string(),
+      }),
+      scores: v.array(v.number()),
+    });
+    const resolver = valibotResolver(schema);
+
+    const result = await resolver.validate(
+      {
+        "settings[theme]": "dark",
+        "scores[0]": 95,
+        "scores[1]": 100,
+      },
+      {} as never,
+    );
+
+    expect(result).toEqual({
+      success: true,
+      values: {
+        settings: { theme: "dark" },
+        scores: [95, 100],
+      },
+    });
+  });
 });
 

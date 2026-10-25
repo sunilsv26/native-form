@@ -8,9 +8,12 @@ import {
   runtimeMutationObserverOptions,
 } from "./RuntimeMutationPolicy";
 import {
+  getByPath,
   matchArrayItemPath,
+  normalizePath,
   remapArrayItemIndex,
   shiftArrayItemIndex,
+  toNestedValues,
 } from "../Path";
 import { Serializer, SerializeFieldsOptions } from "../serialization/Serializer";
 import {
@@ -42,6 +45,7 @@ export interface RuntimeOptions<
   mode?: ValidationMode;
   serializationMode?: SerializationMode;
   serializeFieldsOptions?: SerializeFieldsOptions;
+  nesting?: "flat" | "nested";
   schema?: SchemaLike<TValues>;
   validator?: Validator<TValues>;
   pipeline?: ValidationPipeline<TValues>;
@@ -235,12 +239,23 @@ export class Runtime<
     if (!this.form) {
       return {} as TValues;
     }
+
+    const serializeOpts: SerializeFieldsOptions = {
+      ...this.options.serializeFieldsOptions,
+      ...(this.options.nesting ? { nesting: this.options.nesting } : {}),
+    };
+
+    let values: NativeFormValues;
     if (this.serializationMode === "typed") {
-      return this.serializeFields(
-        this.options.serializeFieldsOptions,
-      ) as unknown as TValues;
+      values = this.serializeFields(serializeOpts);
+    } else {
+      values = this.serialize();
+      if (this.options.nesting === "nested") {
+        values = toNestedValues(values);
+      }
     }
-    return this.serialize() as unknown as TValues;
+
+    return values as unknown as TValues;
   }
 
   subscribe(listener: RuntimeListener): () => void {
@@ -867,6 +882,24 @@ export class Runtime<
     }
 
     if (!node) {
+      // Check for bracket/dot alias (e.g. user.profile.name vs user[profile][name])
+      const normalizedTarget = normalizePath(name);
+      for (const field of this.registry.values()) {
+        if (normalizePath(field.name) === normalizedTarget) {
+          node = field;
+          break;
+        }
+      }
+    }
+
+    if (!node) {
+      if (this.options.nesting === "nested") {
+        const nested = this.extractCurrentValues();
+        const resolved = getByPath(nested, name);
+        if (resolved !== undefined) {
+          return resolved as NativeFormValue;
+        }
+      }
       return undefined;
     }
 

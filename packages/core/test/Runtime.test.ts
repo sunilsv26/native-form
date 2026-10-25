@@ -2027,6 +2027,64 @@ describe("Runtime", () => {
       });
     });
   });
+
+  describe("nested object path resolution (RFC 003)", () => {
+    it("returns true nested structures when nesting is 'nested'", () => {
+      const form = createForm(`
+        <input name="user.profile.name" value="Alice" />
+        <input name="user[profile][age]" type="number" value="30" />
+        <input name="tasks[0].title" value="Code review" />
+      `);
+
+      const runtime = new Runtime({
+        serializationMode: "typed",
+        nesting: "nested",
+      });
+      runtime.mount(form);
+
+      const state = runtime.getFormState();
+      expect(state.values).toEqual({
+        user: {
+          profile: {
+            name: "Alice",
+            age: 30,
+          },
+        },
+        tasks: [
+          { title: "Code review" },
+        ],
+      });
+    });
+
+    it("allows getFieldValue with bracket notation or parent paths", () => {
+      const form = createForm(`
+        <input name="user.name" value="Bob" />
+        <input name="user.email" value="bob@example.com" />
+        <input name="tags[0]" value="typescript" />
+      `);
+
+      const runtime = new Runtime({
+        serializationMode: "typed",
+        nesting: "nested",
+      });
+      runtime.mount(form);
+
+      // Direct exact match
+      expect(runtime.getFieldValue("user.name")).toBe("Bob");
+
+      // Bracket alias for dot-named input
+      expect(runtime.getFieldValue("user[name]")).toBe("Bob");
+
+      // Dot alias for bracket-named input
+      expect(runtime.getFieldValue("tags.0")).toBe("typescript");
+
+      // Parent object resolution
+      expect(runtime.getFieldValue("user")).toEqual({
+        name: "Bob",
+        email: "bob@example.com",
+      });
+    });
+  });
 });
 
 function createForm(markup: string): HTMLFormElement {

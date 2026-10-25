@@ -15,12 +15,16 @@ export {
   type ArrayItemPathInfo,
   type FieldPathSegment,
   formPath,
+  getByPath,
   isArrayItemPath,
   matchArrayItemPath,
+  normalizePath,
   parseArrayItemPath,
   remapArrayItemIndex,
+  setByPath,
   shiftArrayItemIndex,
   splitPath,
+  toNestedValues,
 } from "./Path";
 
 export {

@@ -3,12 +3,16 @@ import { describe, expect, it } from "vitest";
 import {
   arrayItemPath,
   formPath,
+  getByPath,
   isArrayItemPath,
   matchArrayItemPath,
+  normalizePath,
   parseArrayItemPath,
   remapArrayItemIndex,
+  setByPath,
   shiftArrayItemIndex,
   splitPath,
+  toNestedValues,
 } from "../src/Path";
 
 describe("Path helpers", () => {
@@ -135,5 +139,163 @@ describe("Path helpers", () => {
     expect(() => remapArrayItemIndex("items.0.name", "items", 0, 1.5)).toThrow(
       "remapArrayItemIndex newIndex must be a non-negative integer.",
     );
+  });
+
+  describe("Bracket notation & normalization (RFC 003)", () => {
+    it("splits bracket notation paths into clean segments", () => {
+      expect(splitPath("user[profile][name]")).toEqual([
+        "user",
+        "profile",
+        "name",
+      ]);
+      expect(splitPath("items[0].title")).toEqual(["items", "0", "title"]);
+      expect(splitPath("items[0][title]")).toEqual(["items", "0", "title"]);
+      expect(splitPath("data['nested'][\"key\"]")).toEqual(["data", "nested", "key"]);
+    });
+
+    it("normalizes bracket paths to canonical dot notation", () => {
+      expect(normalizePath("user[profile][name]")).toBe("user.profile.name");
+      expect(normalizePath("tasks[0].title")).toBe("tasks.0.title");
+      expect(normalizePath("tasks[0][title]")).toBe("tasks.0.title");
+      expect(normalizePath("user.name")).toBe("user.name");
+      expect(normalizePath("")).toBe("");
+    });
+  });
+
+  describe("getByPath (RFC 003)", () => {
+    const data = {
+      user: {
+        profile: {
+          name: "Alice",
+        },
+      },
+      tags: ["frontend", "react"],
+      matrix: [[1, 2], [3, 4]],
+    };
+
+    it("reads deeply nested values with dot and bracket paths", () => {
+      expect(getByPath(data, "user.profile.name")).toBe("Alice");
+      expect(getByPath(data, "user[profile][name]")).toBe("Alice");
+      expect(getByPath(data, "tags.0")).toBe("frontend");
+      expect(getByPath(data, "tags[1]")).toBe("react");
+      expect(getByPath(data, "matrix.1.0")).toBe(3);
+    });
+
+    it("returns default fallback for missing paths", () => {
+      expect(getByPath(data, "user.profile.missing", "fallback")).toBe("fallback");
+      expect(getByPath(data, "nonexistent.field")).toBeUndefined();
+    });
+
+    it("blocks prototype pollution read attempts", () => {
+      expect(getByPath(data, "__proto__")).toBeUndefined();
+      expect(getByPath(data, "constructor.prototype")).toBeUndefined();
+    });
+  });
+
+  describe("setByPath (RFC 003)", () => {
+    it("creates nested objects and sets deep values", () => {
+      const target: Record<string, unknown> = {};
+      setByPath(target, "user.profile.name", "Alice");
+      expect(target).toEqual({
+        user: {
+          profile: {
+            name: "Alice",
+          },
+        },
+      });
+    });
+
+    it("creates arrays for numeric segments", () => {
+      const target: Record<string, unknown> = {};
+      setByPath(target, "tasks[0].title", "Task 1");
+      setByPath(target, "tasks[1].title", "Task 2");
+      expect(target).toEqual({
+        tasks: [{ title: "Task 1" }, { title: "Task 2" }],
+      });
+    });
+
+    it("handles mixed dot and bracket notation paths", () => {
+      const target: Record<string, unknown> = {};
+      setByPath(target, "company[departments].0.manager[name]", "Elena");
+      expect(target).toEqual({
+        company: {
+          departments: [
+            {
+              manager: {
+                name: "Elena",
+              },
+            },
+          ],
+        },
+      });
+    });
+
+    it("strictly prevents prototype pollution attacks", () => {
+      const target: Record<string, unknown> = {};
+
+      setByPath(target, "__proto__.polluted", "hacked");
+      setByPath(target, "constructor.prototype.polluted", "hacked");
+      setByPath(target, "prototype.polluted", "hacked");
+
+      expect((target as any).polluted).toBeUndefined();
+      expect(({} as any).polluted).toBeUndefined();
+    });
+  });
+
+  describe("toNestedValues (RFC 003)", () => {
+    it("converts a flat key-value map into deeply nested structures", () => {
+      const flat = {
+        "user.name": "Alice",
+        "user.age": 28,
+        "user[address][city]": "Wonderland",
+        "tasks[0].title": "Read RFC",
+        "tasks[0].completed": true,
+        "tasks[1].title": "Implement NF-013",
+        "tasks[1].completed": false,
+      };
+
+      const nested = toNestedValues(flat);
+
+      expect(nested).toEqual({
+        user: {
+          name: "Alice",
+          age: 28,
+          address: {
+            city: "Wonderland",
+          },
+        },
+        tasks: [
+          {
+            title: "Read RFC",
+            completed: true,
+          },
+          {
+            title: "Implement NF-013",
+            completed: false,
+          },
+        ],
+      });
+    });
+
+    it("safely handles prototype pollution in flat input maps", () => {
+      const malicious = {
+        "__proto__.isAdmin": true,
+        "user.profile.name": "Eve",
+        "constructor.prototype.isRoot": true,
+      };
+
+      const nested = toNestedValues(malicious);
+
+      expect(nested).toEqual({
+        user: {
+          profile: {
+            name: "Eve",
+          },
+        },
+      });
+
+      expect(({} as any).isAdmin).toBeUndefined();
+      expect(({} as any).isRoot).toBeUndefined();
+    });
   });
 });

@@ -84,23 +84,19 @@ const schema = z.object({
 });
 
 export function LoginForm() {
-  const form = useForm({
+  const { formRef, formState } = useForm({
     schema: zodResolver(schema),
     serializationMode: "typed",
     onSubmit: (values) => console.log("Validated:", values),
   });
 
-  const emailField = useField({ form, name: "email" });
-
   return (
-    <form ref={form.formRef} noValidate>
+    <form ref={formRef} noValidate>
       <input name="email" type="email" placeholder="Email" />
-      {emailField.error && <span style={{ color: "red" }}>{emailField.error}</span>}
-
       <input name="age" type="number" placeholder="Age" />
 
-      <button type="submit" disabled={form.formState.submitting}>
-        {form.formState.submitting ? "Validating..." : "Submit"}
+      <button type="submit" disabled={formState.submitting}>
+        {formState.submitting ? "Validating..." : "Submit"}
       </button>
     </form>
   );

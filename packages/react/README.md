@@ -53,7 +53,7 @@ function InputField({ form, name, label, type = "text" }: { form: any; name: str
 }
 
 export function LoginForm() {
-  const form = useForm({
+  const { formRef, formState } = useForm({
     mode: "onBlur",
     onSubmit: (values) => {
       console.log("Submitted form values:", values);
@@ -64,12 +64,12 @@ export function LoginForm() {
   });
 
   return (
-    <form ref={form.formRef} noValidate>
-      <InputField form={form} name="email" label="Email Address" type="email" />
-      <InputField form={form} name="password" label="Password" type="password" />
+    <form ref={formRef} noValidate>
+      <InputField name="email" label="Email Address" type="email" />
+      <InputField name="password" label="Password" type="password" />
 
-      <button type="submit" disabled={form.formState.submitting}>
-        {form.formState.submitting ? "Signing in..." : "Sign In"}
+      <button type="submit" disabled={formState.submitting}>
+        {formState.submitting ? "Signing in..." : "Sign In"}
       </button>
     </form>
   );

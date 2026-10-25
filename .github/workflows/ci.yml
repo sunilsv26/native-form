@@ -32,3 +32,6 @@ jobs:
 
       - name: Verify workspace
         run: pnpm verify
+
+      - name: Verify API Surface
+        run: pnpm run api:extract

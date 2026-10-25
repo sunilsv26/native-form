@@ -551,7 +551,7 @@ Implementation files:
 - Milestone: v0.6
 - Estimate: 3-5 days
 - Dependencies: NF-018, NF-020
-- Status: Proposed (see RFC 005)
+- Status: In Progress (Phase 1 Runtime.validateFields & Phase 2 useWizard complete)
 
 Scope:
 

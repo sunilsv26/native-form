@@ -359,10 +359,24 @@ export class Runtime<
       throw new Error("Runtime is not mounted.");
     }
 
+    this.clearDebounceTimers();
+    this.abortAllValidations();
+
+    // Clear prior errors on targeted fields before running validation
+    for (const name of fieldNames) {
+      delete this.errors[name];
+      const normalized = normalizePath(name);
+      if (this.errors[normalized]) {
+        delete this.errors[normalized];
+      }
+      const node = this.registry.get(name);
+      node?.setError(undefined);
+    }
+    this.applyNativeErrors();
+
     const values = this.extractCurrentValues();
     const normalizedTargetNames = new Set(fieldNames.map(normalizePath));
 
-    this.validationController?.abort();
     const controller = new AbortController();
     this.validationController = controller;
     this.validating = true;

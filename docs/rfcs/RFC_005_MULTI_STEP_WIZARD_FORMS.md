@@ -1,7 +1,7 @@
 # RFC 005: Multi-Step & Wizard Form Workflows (NF-021)
 
 - **Issue**: NF-021 / [ISSUE_BACKLOG.md](file:///d:/workspace/projects/native-form/docs/ISSUE_BACKLOG.md)
-- **Status**: Proposed / Under Review
+- **Status**: Phase 1 & 2 Complete / Under Review
 - **Target Version**: v0.7.0
 - **Author**: Antigravity Core Team
 

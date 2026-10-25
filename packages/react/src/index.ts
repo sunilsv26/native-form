@@ -3,4 +3,5 @@ export * from "./useForm";
 export * from "./useField";
 export * from "./useWatch";
 export * from "./useFieldArray";
+export * from "./useWizard";
 export * from "./shallowEqual";

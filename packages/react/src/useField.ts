@@ -140,6 +140,13 @@ export function useField<
   const nameRef = useRef(name);
   nameRef.current = name;
 
+  const [prevName, setPrevName] = useState(name);
+  if (prevName !== name) {
+    setPrevName(name);
+    prevRef.current = currentSelected;
+    setSelected(currentSelected);
+  }
+
   useEffect(() => {
     const runtime = form.runtime;
     if (!runtime) {
@@ -168,7 +175,7 @@ export function useField<
     return () => {
       unsubscribe();
     };
-  }, [form.runtime]);
+  }, [form.runtime, name]);
 
   // When form.runtime is not mounted yet, stay in sync with form.formState
   if (!form.runtime && !shallowEqual(prevRef.current, currentSelected)) {

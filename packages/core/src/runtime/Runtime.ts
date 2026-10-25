@@ -7,6 +7,11 @@ import {
   isRuntimeMutationRelevant,
   runtimeMutationObserverOptions,
 } from "./RuntimeMutationPolicy";
+import {
+  matchArrayItemPath,
+  remapArrayItemIndex,
+  shiftArrayItemIndex,
+} from "../Path";
 import { Serializer, SerializeFieldsOptions } from "../serialization/Serializer";
 import {
   createValidationPipeline,
@@ -75,6 +80,10 @@ export interface RuntimePublicApi<
   getFieldStates(): FieldState[];
   getFormState(): RuntimeFormState;
   setOptions(options: Partial<RuntimeOptions<TValues>>): void;
+  removeArrayItem(arrayName: string, index: number): void;
+  swapArrayItems(arrayName: string, indexA: number, indexB: number): void;
+  moveArrayItem(arrayName: string, fromIndex: number, toIndex: number): void;
+  insertArrayItem(arrayName: string, index: number): void;
 }
 
 type FieldRuntimeEvent = Extract<RuntimeEvent, { type: `field:${string}` }>;
@@ -645,6 +654,152 @@ export class Runtime<
           schema: options.schema,
           validator: options.validator,
         });
+    }
+  }
+
+  removeArrayItem(arrayName: string, index: number): void {
+    const nextErrors: Record<string, string> = {};
+    let changed = false;
+
+    for (const [path, error] of Object.entries(this.errors)) {
+      const match = matchArrayItemPath(path, arrayName);
+      if (!match) {
+        nextErrors[path] = error;
+        continue;
+      }
+
+      if (match.index === index) {
+        changed = true;
+        continue;
+      }
+
+      if (match.index > index) {
+        const shiftedPath = shiftArrayItemIndex(path, arrayName, index + 1, -1);
+        nextErrors[shiftedPath] = error;
+        changed = true;
+      } else {
+        nextErrors[path] = error;
+      }
+    }
+
+    if (changed) {
+      this.errors = nextErrors;
+      this.fieldErrorRenderer.applyErrors(this.registry.values(), this.errors);
+      this.emitValidationEvent({
+        type: "validation:end",
+        errors: { ...this.errors },
+        values: this.form ? this.serialize() : {},
+      });
+    }
+  }
+
+  swapArrayItems(arrayName: string, indexA: number, indexB: number): void {
+    if (indexA === indexB) return;
+
+    const nextErrors: Record<string, string> = {};
+    let changed = false;
+
+    for (const [path, error] of Object.entries(this.errors)) {
+      const match = matchArrayItemPath(path, arrayName);
+      if (!match) {
+        nextErrors[path] = error;
+        continue;
+      }
+
+      if (match.index === indexA) {
+        const newPath = remapArrayItemIndex(path, arrayName, indexA, indexB);
+        nextErrors[newPath] = error;
+        changed = true;
+      } else if (match.index === indexB) {
+        const newPath = remapArrayItemIndex(path, arrayName, indexB, indexA);
+        nextErrors[newPath] = error;
+        changed = true;
+      } else {
+        nextErrors[path] = error;
+      }
+    }
+
+    if (changed) {
+      this.errors = nextErrors;
+      this.fieldErrorRenderer.applyErrors(this.registry.values(), this.errors);
+      this.emitValidationEvent({
+        type: "validation:end",
+        errors: { ...this.errors },
+        values: this.form ? this.serialize() : {},
+      });
+    }
+  }
+
+  moveArrayItem(arrayName: string, fromIndex: number, toIndex: number): void {
+    if (fromIndex === toIndex) return;
+
+    const nextErrors: Record<string, string> = {};
+    let changed = false;
+
+    for (const [path, error] of Object.entries(this.errors)) {
+      const match = matchArrayItemPath(path, arrayName);
+      if (!match) {
+        nextErrors[path] = error;
+        continue;
+      }
+
+      const idx = match.index;
+      if (idx === fromIndex) {
+        const newPath = remapArrayItemIndex(path, arrayName, fromIndex, toIndex);
+        nextErrors[newPath] = error;
+        changed = true;
+      } else if (fromIndex < toIndex && idx > fromIndex && idx <= toIndex) {
+        const newPath = remapArrayItemIndex(path, arrayName, idx, idx - 1);
+        nextErrors[newPath] = error;
+        changed = true;
+      } else if (fromIndex > toIndex && idx >= toIndex && idx < fromIndex) {
+        const newPath = remapArrayItemIndex(path, arrayName, idx, idx + 1);
+        nextErrors[newPath] = error;
+        changed = true;
+      } else {
+        nextErrors[path] = error;
+      }
+    }
+
+    if (changed) {
+      this.errors = nextErrors;
+      this.fieldErrorRenderer.applyErrors(this.registry.values(), this.errors);
+      this.emitValidationEvent({
+        type: "validation:end",
+        errors: { ...this.errors },
+        values: this.form ? this.serialize() : {},
+      });
+    }
+  }
+
+  insertArrayItem(arrayName: string, index: number): void {
+    const nextErrors: Record<string, string> = {};
+    let changed = false;
+
+    for (const [path, error] of Object.entries(this.errors)) {
+      const match = matchArrayItemPath(path, arrayName);
+      if (!match) {
+        nextErrors[path] = error;
+        continue;
+      }
+
+      if (match.index >= index) {
+        const shiftedPath = shiftArrayItemIndex(path, arrayName, index, 1);
+        nextErrors[shiftedPath] = error;
+        changed = true;
+      } else {
+        nextErrors[path] = error;
+      }
+    }
+
+    if (changed) {
+      this.errors = nextErrors;
+      this.fieldErrorRenderer.applyErrors(this.registry.values(), this.errors);
+      this.emitValidationEvent({
+        type: "validation:end",
+        errors: { ...this.errors },
+        values: this.form ? this.serialize() : {},
+      });
     }
   }
 

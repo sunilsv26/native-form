@@ -8,6 +8,7 @@ describe("@native-form/react public API", () => {
     expect((reactPkg as any).useForm).toBeDefined();
     expect((reactPkg as any).useField).toBeDefined();
     expect((reactPkg as any).useWatch).toBeDefined();
+    expect((reactPkg as any).useFieldArray).toBeDefined();
     expect((reactPkg as any).shallowEqual).toBeDefined();
   });
 });

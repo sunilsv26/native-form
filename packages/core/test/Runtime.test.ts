@@ -1828,6 +1828,104 @@ describe("Runtime", () => {
       expect(runtime.serializeFields()).toEqual({});
     });
   });
+
+  describe("Field array error lifecycle (NF-017)", () => {
+    it("shifts errors when an array item is removed", () => {
+      const form = createForm(`
+        <input name="users.0.email" value="u0@example.com" />
+        <input name="users.1.email" value="invalid1" />
+        <input name="users.2.email" value="invalid2" />
+      `);
+
+      const runtime = new Runtime();
+      runtime.mount(form);
+
+      // Inject simulated errors on users.1 and users.2
+      (runtime as any).errors = {
+        "users.1.email": "Error 1",
+        "users.2.email": "Error 2",
+        "other.field": "Other Error",
+      };
+
+      // Remove item at index 1
+      runtime.removeArrayItem("users", 1);
+
+      expect(runtime.getFormState().errors).toEqual({
+        "users.1.email": "Error 2", // shifted from 2 to 1
+        "other.field": "Other Error", // untouched
+      });
+    });
+
+    it("swaps error paths between two items", () => {
+      const form = createForm(`
+        <input name="items.0.name" value="a" />
+        <input name="items.1.name" value="b" />
+        <input name="items.2.name" value="c" />
+      `);
+
+      const runtime = new Runtime();
+      runtime.mount(form);
+
+      (runtime as any).errors = {
+        "items.0.name": "Error A",
+        "items.2.name": "Error C",
+      };
+
+      runtime.swapArrayItems("items", 0, 2);
+
+      expect(runtime.getFormState().errors).toEqual({
+        "items.0.name": "Error C",
+        "items.2.name": "Error A",
+      });
+    });
+
+    it("moves error paths correctly when an item is moved", () => {
+      const form = createForm(`
+        <input name="tasks.0.title" value="t0" />
+        <input name="tasks.1.title" value="t1" />
+        <input name="tasks.2.title" value="t2" />
+      `);
+
+      const runtime = new Runtime();
+      runtime.mount(form);
+
+      (runtime as any).errors = {
+        "tasks.0.title": "Error Task 0",
+        "tasks.1.title": "Error Task 1",
+      };
+
+      // Move task 0 to position 2 (0 -> 2): task 1 shifts left to 0, task 0 goes to 2
+      runtime.moveArrayItem("tasks", 0, 2);
+
+      expect(runtime.getFormState().errors).toEqual({
+        "tasks.0.title": "Error Task 1",
+        "tasks.2.title": "Error Task 0",
+      });
+    });
+
+    it("shifts errors up when an item is inserted", () => {
+      const form = createForm(`
+        <input name="rows.0.value" value="r0" />
+        <input name="rows.1.value" value="r1" />
+      `);
+
+      const runtime = new Runtime();
+      runtime.mount(form);
+
+      (runtime as any).errors = {
+        "rows.0.value": "Error Row 0",
+        "rows.1.value": "Error Row 1",
+      };
+
+      // Insert at position 1: rows.1 shifts to rows.2
+      runtime.insertArrayItem("rows", 1);
+
+      expect(runtime.getFormState().errors).toEqual({
+        "rows.0.value": "Error Row 0",
+        "rows.2.value": "Error Row 1",
+      });
+    });
+  });
 });
 
 function createForm(markup: string): HTMLFormElement {

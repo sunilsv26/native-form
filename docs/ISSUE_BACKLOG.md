@@ -432,11 +432,14 @@ Acceptance criteria:
 - Milestone: v0.4
 - Estimate: 5-8 days
 - Dependencies: NF-010
+- Status: Completed
 
 Scope:
 
 - Build ergonomic helpers for indexed field workflows on top of existing array path foundation.
 - Preserve DOM-first behavior and no-registration model.
+- Provide `useFieldArray` hook in `@native-form/react` with append, prepend, insert, remove, swap, move, and replace.
+- Keep runtime error maps synchronized on array shifts and removals.
 
 Implementation files:
 
@@ -444,6 +447,8 @@ Implementation files:
 - packages/core/src/runtime/Runtime.ts
 - packages/core/test/Path.test.ts
 - packages/core/test/Runtime.test.ts
+- packages/react/src/useFieldArray.ts
+- packages/react/test/useFieldArray.test.tsx
 
 Acceptance criteria:
 

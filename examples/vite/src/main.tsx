@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { arrayItemPath, formPath, type ValidationMode } from "@native-form/core";
 import {
   useField,
+  useFieldArray,
   useForm,
   UseFormResult,
   useWatch,
@@ -307,7 +308,6 @@ function ShowcaseView() {
   );
   const [validationMode, setValidationMode] =
     useState<ValidationMode>("onChange");
-  const [teammateIds, setTeammateIds] = useState<number[]>([1]);
 
   const appRenders = useRef(0);
   appRenders.current++;
@@ -337,13 +337,11 @@ function ShowcaseView() {
     },
   });
 
-  const addTeammate = () => {
-    setTeammateIds((prev) => [...prev, Date.now()]);
-  };
-
-  const removeTeammate = (index: number) => {
-    setTeammateIds((prev) => prev.filter((_, i) => i !== index));
-  };
+  const teammates = useFieldArray({
+    form,
+    name: "teammates",
+    defaultValue: [{ email: "" }],
+  });
 
   return (
     <div>
@@ -543,11 +541,11 @@ function ShowcaseView() {
                 color: "#1e293b",
               }}
             >
-              Teammates ({teammateIds.length})
+              Teammates ({teammates.fields.length})
             </label>
             <button
               type="button"
-              onClick={addTeammate}
+              onClick={() => teammates.append({ email: "" })}
               style={{
                 padding: "4px 10px",
                 backgroundColor: "#e0e7ff",
@@ -563,15 +561,15 @@ function ShowcaseView() {
             </button>
           </div>
 
-          {teammateIds.map((id, index) => {
+          {teammates.fields.map((field, index) => {
             const fieldName = arrayItemPath("teammates", index, "email");
             return (
               <TeammateRow
-                key={id}
+                key={field.id}
                 form={form}
                 name={fieldName}
                 index={index}
-                onRemove={() => removeTeammate(index)}
+                onRemove={() => teammates.remove(index)}
               />
             );
           })}

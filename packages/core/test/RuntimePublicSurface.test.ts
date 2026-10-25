@@ -16,7 +16,11 @@ type RuntimePublicKey =
   | "getFieldState"
   | "getFieldStates"
   | "getFormState"
-  | "setOptions";
+  | "setOptions"
+  | "removeArrayItem"
+  | "swapArrayItems"
+  | "moveArrayItem"
+  | "insertArrayItem";
 
 type RuntimeInstanceKeys = keyof Runtime;
 type RuntimeApiKeys = keyof RuntimePublicApi;

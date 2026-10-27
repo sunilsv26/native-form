@@ -25,11 +25,11 @@ React hooks and components for Native Form — native HTML-first forms with zero
 ## Installation
 
 ```bash
-npm install @native-form/react @native-form/core
+npm install @native-form/react
 # or
-pnpm add @native-form/react @native-form/core
+pnpm add @native-form/react
 # or
-yarn add @native-form/react @native-form/core
+yarn add @native-form/react
 ```
 
 ---

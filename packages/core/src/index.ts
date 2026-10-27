@@ -66,4 +66,5 @@ export {
   type SerializationMode,
   type ValidationEvents,
   type ValidationMode,
+  type ReValidateMode,
 } from "./types";

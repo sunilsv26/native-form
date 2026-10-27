@@ -44,7 +44,9 @@ export class FieldNode {
           return this.element.checked ? this.element.value : undefined;
 
         case "number":
-          return this.element.value === ""
+        case "range":
+          return this.element.value === "" ||
+            Number.isNaN(this.element.valueAsNumber)
             ? undefined
             : this.element.valueAsNumber;
 

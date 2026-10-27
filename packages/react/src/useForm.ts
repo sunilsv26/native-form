@@ -101,6 +101,8 @@ export function useForm<
 
     const runtime = new Runtime<TValues>({
       mode: options.mode,
+      reValidateMode: options.reValidateMode ?? "onChange",
+      renderDomErrors: options.renderDomErrors ?? false,
       serializationMode: options.serializationMode,
       serializeFieldsOptions: options.serializeFieldsOptions,
       nesting: options.nesting,
@@ -110,9 +112,13 @@ export function useForm<
       schema: schemaRef.current as SchemaLike<TValues> | undefined,
       validator: validatorRef.current,
       pipeline: pipelineRef.current,
-      onSubmit: (values, event) => onSubmitRef.current?.(values, event),
-      onInvalid: (errors, values, event) =>
-        onInvalidRef.current?.(errors, values, event),
+      onSubmit: (values: TValues, event?: SubmitEvent) =>
+        onSubmitRef.current?.(values, event),
+      onInvalid: (
+        errors: Record<string, string>,
+        values: NativeFormValues,
+        event?: SubmitEvent,
+      ) => onInvalidRef.current?.(errors, values, event),
     });
 
     runtime.mount(formRef.current);
@@ -153,6 +159,8 @@ export function useForm<
     if (runtimeRef.current) {
       runtimeRef.current.setOptions({
         mode: options.mode,
+        reValidateMode: options.reValidateMode,
+        renderDomErrors: options.renderDomErrors ?? false,
         serializationMode: options.serializationMode,
         serializeFieldsOptions: options.serializeFieldsOptions,
         nesting: options.nesting,
@@ -165,6 +173,8 @@ export function useForm<
     }
   }, [
     options.mode,
+    options.reValidateMode,
+    options.renderDomErrors,
     options.serializationMode,
     options.serializeFieldsOptions,
     options.nesting,

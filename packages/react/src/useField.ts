@@ -92,7 +92,8 @@ function getFieldSnapshot(
 ): UseFieldResult {
   const normalized = normalizePath(name);
   const field = formState.fields.find(
-    (entry) => entry.name === name || normalizePath(entry.name) === normalized,
+    (entry: FieldState) =>
+      entry.name === name || normalizePath(entry.name) === normalized,
   );
 
   if (!field) {

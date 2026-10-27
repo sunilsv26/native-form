@@ -11,9 +11,13 @@ export class FieldErrorRenderer {
     HTMLElement
   >();
 
-  applyErrors(fields: FieldNode[], errors: Record<string, string>) {
+  applyErrors(
+    fields: FieldNode[],
+    errors: Record<string, string>,
+    renderDomErrors: boolean = true,
+  ) {
     for (const field of fields) {
-      this.applyFieldError(field, errors[field.name]);
+      this.applyFieldError(field, errors[field.name], renderDomErrors);
     }
   }
 
@@ -23,13 +27,23 @@ export class FieldErrorRenderer {
     }
   }
 
-  private applyFieldError(field: FieldNode, message: string | undefined) {
+  private applyFieldError(
+    field: FieldNode,
+    message: string | undefined,
+    renderDomErrors: boolean = true,
+  ) {
     const element = field.element;
 
     try {
       element.setCustomValidity(message ?? "");
     } catch (_e) {
       // Some controls in tests may not support setCustomValidity.
+    }
+
+    if (!renderDomErrors) {
+      this.removeErrorElements(this.findExistingErrorElements(element));
+      this.errorElements.delete(element);
+      return;
     }
 
     if (!message) {

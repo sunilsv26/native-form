@@ -30,6 +30,7 @@ import {
   RuntimeListener,
   SerializationMode,
   ValidationMode,
+  ReValidateMode,
 } from "../shared/types";
 import {
   AsyncFieldValidator,
@@ -45,6 +46,20 @@ export interface RuntimeOptions<
   TValues extends NativeFormValues = NativeFormValues,
 > {
   mode?: ValidationMode;
+  /**
+   * Validation strategy used after the form has encountered errors.
+   * - "onChange": field re-validates immediately on input/change when it has an error
+   * - "onBlur": field re-validates when blurred
+   * - "onSubmit": field re-validates only on subsequent submits
+   * @defaultValue "onChange"
+   */
+  reValidateMode?: ReValidateMode;
+  /**
+   * Whether to inject native DOM error elements after inputs.
+   * Defaults to `true` in core, but `false` in `@native-form/react`.
+   * @defaultValue true
+   */
+  renderDomErrors?: boolean;
   serializationMode?: SerializationMode;
   serializeFieldsOptions?: SerializeFieldsOptions;
   nesting?: "flat" | "nested";
@@ -783,9 +798,14 @@ export class Runtime<
     node.handleInput(value);
 
     const mode = this.options.mode ?? "onChange";
+    const reValidateMode = this.options.reValidateMode ?? "onChange";
+    const hasExistingError = Boolean(
+      resolveFieldError(this.errors, element.name),
+    );
     const shouldValidate =
       mode === "onChange" ||
       mode === "all" ||
+      (hasExistingError && reValidateMode === "onChange") ||
       (mode === "onTouched" && node.isTouched);
 
     if (shouldValidate) {
@@ -819,9 +839,19 @@ export class Runtime<
     node.handleChange(value);
 
     const mode = this.options.mode ?? "onChange";
+    const reValidateMode = this.options.reValidateMode ?? "onChange";
+    const hasExistingError = Boolean(
+      resolveFieldError(this.errors, element.name),
+    );
+    const isDiscreteControl =
+      element instanceof HTMLSelectElement ||
+      (element instanceof HTMLInputElement &&
+        (element.type === "checkbox" || element.type === "radio"));
     const shouldValidate =
       mode === "onChange" ||
       mode === "all" ||
+      isDiscreteControl ||
+      (hasExistingError && reValidateMode === "onChange") ||
       (mode === "onTouched" && node.isTouched);
 
     if (shouldValidate) {
@@ -1045,11 +1075,16 @@ export class Runtime<
     node?.handleBlur();
 
     const mode = this.options.mode ?? "onChange";
+    const reValidateMode = this.options.reValidateMode ?? "onChange";
+    const hasExistingError = Boolean(
+      resolveFieldError(this.errors, element.name),
+    );
     const hasPendingDebounce = this.debounceTimers.has(element.name);
     const shouldValidate =
       mode === "onBlur" ||
       mode === "onTouched" ||
       mode === "all" ||
+      (hasExistingError && reValidateMode === "onBlur") ||
       hasPendingDebounce;
 
     if (shouldValidate && node) {
@@ -1732,7 +1767,12 @@ export class Runtime<
       observer.disconnect();
     }
 
-    this.fieldErrorRenderer.applyErrors(this.registry.values(), this.errors);
+    const renderDomErrors = this.options.renderDomErrors ?? true;
+    this.fieldErrorRenderer.applyErrors(
+      this.registry.values(),
+      this.errors,
+      renderDomErrors,
+    );
 
     if (observer && this.form) {
       observer.observe(this.form, runtimeMutationObserverOptions);

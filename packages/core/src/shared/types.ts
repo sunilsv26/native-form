@@ -13,6 +13,15 @@ export type ValidationMode =
   | "onSubmit"
   | "onTouched"
   | "all";
+
+/**
+ * Supported re-validation modes for fields that currently contain errors.
+ * - onChange: re-validates on every input/change event once an error is present
+ * - onBlur: re-validates only when the input loses focus
+ * - onSubmit: re-validates only on subsequent form submissions
+ * @public
+ */
+export type ReValidateMode = "onChange" | "onBlur" | "onSubmit";
 /** @public */
 export type NativeFormElement =
   | HTMLInputElement

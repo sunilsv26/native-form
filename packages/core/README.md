@@ -166,13 +166,16 @@ When instantiating `new Runtime(options)`, the following options are available:
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `mode` | `"onSubmit" \| "onBlur" \| "onChange" \| "onTouched" \| "all"` | `"onSubmit"` | Validation trigger strategy. |
-| `serializationMode` | `"native" \| "typed"` | `"native"` | Whether values are serialized as raw strings/FormData or coerced typed values (numbers, booleans). |
+| `mode` | `"onSubmit" \| "onBlur" \| "onChange" \| "onTouched" \| "all"` | `"onSubmit"` | Initial validation trigger strategy. |
+| `reValidateMode` | `"onChange" \| "onBlur" \| "onSubmit"` | `"onChange"` | Re-validation strategy for fields with active errors. Automatically re-validates discrete controls (`checkbox`, `radio`, `select`) on change. |
+| `renderDomErrors` | `boolean` | `true` | Whether the runtime automatically injects DOM `<div data-native-form-error="true">` elements next to invalid inputs. Set to `false` when rendering custom UI errors (defaults to `false` in `@native-form/react`). |
+| `serializationMode` | `"native" \| "typed"` | `"native"` | Whether values are serialized as raw strings/FormData or coerced typed values (numbers, booleans, arrays). |
 | `nesting` | `"flat" \| "nested"` | `"flat"` | Whether dot/bracket notation paths are converted into deep nested objects (e.g. `user.email` -> `{ user: { email } }`). |
 | `preserveUnmountedValues` | `boolean` | `false` | When true, caches values from fields that unmount from the DOM (e.g. multi-step wizard views). |
-| `debounceMs` | `number` | `300` | Debounce delay for async field validators. |
+| `debounceMs` | `number` | `300` | Debounce delay in milliseconds for async field validators. |
 | `asyncValidators` | `Record<string, AsyncValidator>` | `undefined` | Key-value mapping of field names to asynchronous validation functions with `AbortSignal` cancellation. |
 | `schema` | `SchemaLike` | `undefined` | Schema adapter (e.g. from `@native-form/zod`, `@native-form/yup`, `@native-form/valibot`). |
+| `validator` | `Validator` | `undefined` | Custom validator object with a `validate(values, context)` method. |
 | `onSubmit` | `(values, event?) => void` | `undefined` | Callback invoked when submission succeeds and passes validation. |
 | `onInvalid` | `(errors, values, event?) => void` | `undefined` | Callback invoked when submission is blocked due to validation failures. |
 

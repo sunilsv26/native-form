@@ -204,6 +204,42 @@ export function WizardForm() {
 
 ---
 
+## Configuration Options (`useForm`)
+
+When invoking `useForm(options)`, the following configuration options are available:
+
+| Option | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `mode` | `"onSubmit" \| "onBlur" \| "onChange" \| "onTouched" \| "all"` | `"onSubmit"` | Initial validation trigger strategy. |
+| `reValidateMode` | `"onChange" \| "onBlur" \| "onSubmit"` | `"onChange"` | Re-validation strategy for fields with active errors. Automatically re-validates discrete controls (`checkbox`, `radio`, `select`) on change so corrected errors clear immediately. |
+| `renderDomErrors` | `boolean` | `false` | Whether to automatically inject native DOM error elements after inputs. Defaults to `false` in React because error messages are rendered declaratively via `formState.errors`. |
+| `serializationMode` | `"native" \| "typed"` | `"native"` | Whether values are serialized as raw FormData strings or coerced typed values (numbers, booleans, arrays). |
+| `nesting` | `"flat" \| "nested"` | `"flat"` | Whether dot/bracket notation paths are converted into deep nested objects (e.g. `user.email` -> `{ user: { email } }`). |
+| `preserveUnmountedValues` | `boolean` | `false` | When `true`, caches values from fields that unmount from the DOM (e.g. multi-step wizards or conditional inputs). |
+| `debounceMs` | `number` | `300` | Debounce delay in milliseconds for async field validation. |
+| `asyncValidators` | `Record<string, AsyncFieldValidator>` | `undefined` | Mapping of field names to async validator functions with automatic `AbortSignal` cancellation. |
+| `schema` | `SchemaLike` | `undefined` | Schema adapter resolver (`zodResolver`, `yupResolver`, `valibotResolver`). |
+| `validator` | `Validator` | `undefined` | Custom validator object with a `validate(values, context)` method. |
+| `selector` | `(state: RuntimeFormState) => TSelected` | `undefined` | Fine-grained state selector to subscribe only to specific parts of the form state, preventing unnecessary component re-renders. |
+| `subscribe` | `boolean` | `true` | When set to `false`, disables automatic component re-renders on state changes for maximum performance. |
+| `onSubmit` | `(values, event?) => void \| Promise<void>` | `undefined` | Async/sync callback invoked upon successful, validated form submission. |
+| `onInvalid` | `(errors, values, event?) => void` | `undefined` | Callback invoked when submission fails validation. |
+
+### Return Value (`UseFormResult`)
+
+`useForm()` returns an object with the following properties:
+
+```tsx
+const {
+  formRef,   // React.RefObject<HTMLFormElement | null> - attach to <form ref={formRef}>
+  formState, // RuntimeFormState: { valid, submitting, dirty, touched, errors, values }
+  runtime,   // Underlying @native-form/core Runtime instance
+  watch,     // Field watcher function: watch(), watch("fieldName"), watch(["f1", "f2"])
+} = useForm();
+```
+
+---
+
 ## License
 
 MIT © [Sunil](https://github.com/sunilsv26)

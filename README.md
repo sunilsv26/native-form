@@ -26,15 +26,15 @@ Native Form is architected into lightweight, decoupled modules so you can use it
    └─────────────────────┘ └───────────────┘ └────────────────────┘
 ```
 
-| Platform / Framework | Package | Quick Install | Minified (Gzip) |
-| :--- | :--- | :--- | :--- |
-| **Vanilla JS / TypeScript** | [`@native-form/core`](packages/core/README.md) | `npm i @native-form/core` | **9.6 KB** |
-| **Vue.js (Vue 3 `<script setup>`)** | [`@native-form/core`](packages/core/README.md#2-vuejs-vue-3-script-setup) | `npm i @native-form/core` | **9.6 KB** |
-| **Svelte (Svelte 4 & 5)** | [`@native-form/core`](packages/core/README.md#3-svelte-svelte-4--5) | `npm i @native-form/core` | **9.6 KB** |
-| **React (18 & 19, Next.js, Remix)** | [`@native-form/react`](packages/react/README.md) | `npm i @native-form/react @native-form/core` | **18.1 KB** (incl. core) |
-| **Zod Schema Validation** | [`@native-form/zod`](packages/zod/README.md) | `npm i @native-form/zod zod` | **0.4 KB** (445 B) |
-| **Valibot Schema Validation** | [`@native-form/valibot`](packages/valibot/README.md) | `npm i @native-form/valibot valibot` | **0.4 KB** (457 B) |
-| **Yup Schema Validation** | [`@native-form/yup`](packages/yup/README.md) | `npm i @native-form/yup yup` | **0.5 KB** (519 B) |
+| Platform / Framework | Package | Quick Install |
+| :--- | :--- | :--- |
+| **Vanilla JS / TypeScript** | [`@native-form/core`](packages/core/README.md) | `npm i @native-form/core` |
+| **Vue.js (Vue 3 `<script setup>`)** | [`@native-form/core`](packages/core/README.md#2-vuejs-vue-3-script-setup) | `npm i @native-form/core` |
+| **Svelte (Svelte 4 & 5)** | [`@native-form/core`](packages/core/README.md#3-svelte-svelte-4--5) | `npm i @native-form/core` |
+| **React (18 & 19, Next.js, Remix)** | [`@native-form/react`](packages/react/README.md) | `npm i @native-form/react @native-form/core` |
+| **Zod Schema Validation** | [`@native-form/zod`](packages/zod/README.md) | `npm i @native-form/zod zod` |
+| **Valibot Schema Validation** | [`@native-form/valibot`](packages/valibot/README.md) | `npm i @native-form/valibot valibot` |
+| **Yup Schema Validation** | [`@native-form/yup`](packages/yup/README.md) | `npm i @native-form/yup yup` |
 
 ---
 

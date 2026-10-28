@@ -144,6 +144,13 @@ onUnmounted(() => runtime?.unmount());
 
 ---
 
+## React StrictMode & SSR Compatibility
+
+* **React 18 & 19 StrictMode**: Handled cleanly with an idempotent teardown lifecycle. On unmount, `runtime.unmount()` removes all DOM event listeners, disconnects the `MutationObserver`, aborts pending validations, and clears timers. On remount, discovery synchronizes immediately without duplicate listeners or memory leaks.
+* **Next.js & Remix SSR**: Because Native Form uses standard HTML inputs, forms render into plain HTML on the server with **zero hydration mismatch**. During client hydration, all existing server-rendered inputs are indexed synchronously on initial mount before observing future mutations.
+
+---
+
 ## Monorepo Packages
 
 - **[`packages/core`](packages/core/README.md)**: Core framework-agnostic runtime and DOM observer.

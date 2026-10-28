@@ -240,6 +240,19 @@ const {
 
 ---
 
+## React 18/19 StrictMode & Next.js SSR Compatibility
+
+### 1. React 18 & 19 StrictMode (Double Mount)
+In React 18 and 19 development mode, effects are mounted, unmounted, and remounted immediately to detect resource cleanup issues. `useForm` is fully idempotent:
+- **Clean Teardown**: Upon unmount, `runtime.unmount()` removes all DOM event listeners (`submit`, `input`, `change`, `blur`, `reset`), disconnects the internal `MutationObserver`, aborts active validation requests via `AbortController`, and clears all debounce timers.
+- **Fresh Reconnection**: On remount, a fresh runtime instance attaches to `formRef.current` and synchronizes with the DOM without duplicate event firing or state corruption.
+
+### 2. Next.js & Remix SSR (Server-Side Rendering)
+- **Zero Hydration Mismatch**: In SSR frameworks (Next.js App/Pages Router, Remix, Astro), standard `<form>` and `<input>` elements render directly into pure HTML on the server. `useForm` injects zero virtual DOM wrappers or client-only attributes, ensuring 100% hydration consistency.
+- **Synchronous Discovery on Mount**: When the client hydrates and `useLayoutEffect` runs, `Discovery.discover(form)` synchronously indexes all inputs already present in the server-rendered HTML before starting the `MutationObserver` for subsequent dynamic DOM mutations.
+
+---
+
 ## License
 
 MIT © [Sunil](https://github.com/sunilsv26)

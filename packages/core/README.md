@@ -160,6 +160,60 @@ Attach `@native-form/core` via Svelte's `onMount` or action directive:
 
 ---
 
+### 4. React (React 18 & 19)
+
+For React applications, use the official [`@native-form/react`](../react/README.md) package:
+
+```bash
+npm install @native-form/react
+```
+
+```tsx
+import React from "react";
+import { useForm } from "@native-form/react";
+import { zodResolver } from "@native-form/zod";
+import { z } from "zod";
+
+const schema = z.object({
+  email: z.string().email("Enter a valid email"),
+  age: z.number().min(18, "Must be at least 18"),
+});
+
+export function LoginForm() {
+  const { formRef, formState } = useForm({
+    schema: zodResolver(schema),
+    serializationMode: "typed", // automatically coerces type="number" and range to numbers
+    onSubmit: (values) => console.log("Submitted:", values),
+  });
+
+  return (
+    <form ref={formRef} noValidate>
+      <div>
+        <label>Email</label>
+        <input name="email" type="email" placeholder="jane@example.com" />
+        {formState.errors.email && (
+          <p style={{ color: "red" }}>{formState.errors.email}</p>
+        )}
+      </div>
+
+      <div>
+        <label>Age</label>
+        <input name="age" type="number" placeholder="25" />
+        {formState.errors.age && (
+          <p style={{ color: "red" }}>{formState.errors.age}</p>
+        )}
+      </div>
+
+      <button type="submit" disabled={formState.submitting}>
+        {formState.submitting ? "Submitting..." : "Submit"}
+      </button>
+    </form>
+  );
+}
+```
+
+---
+
 ## Configuration Options
 
 When instantiating `new Runtime(options)`, the following options are available:

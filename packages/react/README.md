@@ -38,48 +38,42 @@ yarn add @native-form/react
 
 ```tsx
 import React from "react";
-import { useForm, useField } from "@native-form/react";
+import { useForm } from "@native-form/react";
+import { zodResolver } from "@native-form/zod";
+import { z } from "zod";
 
-function InputField({
-  form,
-  name,
-  label,
-  type = "text",
-}: {
-  form: any;
-  name: string;
-  label: string;
-  type?: string;
-}) {
-  const field = useField({ form, name });
-
-  return (
-    <div>
-      <label>{label}</label>
-      <input name={name} type={type} />
-      {field.error && <p style={{ color: "red", margin: "4px 0" }}>{field.error}</p>}
-    </div>
-  );
-}
+const schema = z.object({
+  email: z.string().email("Enter a valid email"),
+  age: z.number().min(18, "Must be at least 18"),
+});
 
 export function LoginForm() {
-  const form = useForm({
-    mode: "onBlur",
-    onSubmit: (values) => {
-      console.log("Submitted form values:", values);
-    },
-    onInvalid: (errors) => {
-      console.warn("Form validation rejected:", errors);
-    },
+  const { formRef, formState } = useForm({
+    schema: zodResolver(schema),
+    serializationMode: "typed", // automatically coerces type="number" and range to numbers
+    onSubmit: (values) => console.log("Submitted:", values),
   });
 
   return (
-    <form ref={form.formRef} noValidate>
-      <InputField form={form} name="email" label="Email Address" type="email" />
-      <InputField form={form} name="password" label="Password" type="password" />
+    <form ref={formRef} noValidate>
+      <div>
+        <label>Email</label>
+        <input name="email" type="email" placeholder="jane@example.com" />
+        {formState.errors.email && (
+          <p style={{ color: "red" }}>{formState.errors.email}</p>
+        )}
+      </div>
 
-      <button type="submit" disabled={form.formState.submitting}>
-        {form.formState.submitting ? "Signing in..." : "Sign In"}
+      <div>
+        <label>Age</label>
+        <input name="age" type="number" placeholder="25" />
+        {formState.errors.age && (
+          <p style={{ color: "red" }}>{formState.errors.age}</p>
+        )}
+      </div>
+
+      <button type="submit" disabled={formState.submitting}>
+        {formState.submitting ? "Submitting..." : "Submit"}
       </button>
     </form>
   );

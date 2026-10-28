@@ -55,26 +55,39 @@ Native Form is architected into lightweight, decoupled modules so you can use it
 
 ```tsx
 import React from "react";
-import { useForm, useField } from "@native-form/react";
+import { useForm } from "@native-form/react";
 import { zodResolver } from "@native-form/zod";
 import { z } from "zod";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
-  age: z.union([z.number(), z.string().regex(/^\d+$/).transform(Number)]),
+  age: z.number().min(18, "Must be at least 18"),
 });
 
 export function LoginForm() {
   const { formRef, formState } = useForm({
     schema: zodResolver(schema),
-    serializationMode: "typed",
+    serializationMode: "typed", // automatically coerces type="number" and range to numbers
     onSubmit: (values) => console.log("Validated:", values),
   });
 
   return (
     <form ref={formRef} noValidate>
-      <input name="email" type="email" placeholder="Email" />
-      <input name="age" type="number" placeholder="Age" />
+      <div>
+        <label>Email</label>
+        <input name="email" type="email" placeholder="jane@example.com" />
+        {formState.errors.email && (
+          <p style={{ color: "red" }}>{formState.errors.email}</p>
+        )}
+      </div>
+
+      <div>
+        <label>Age</label>
+        <input name="age" type="number" placeholder="25" />
+        {formState.errors.age && (
+          <p style={{ color: "red" }}>{formState.errors.age}</p>
+        )}
+      </div>
 
       <button type="submit" disabled={formState.submitting}>
         {formState.submitting ? "Validating..." : "Submit"}

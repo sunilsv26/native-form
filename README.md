@@ -4,6 +4,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@native-form/core.svg)](https://www.npmjs.com/package/@native-form/core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/sunilsv26/native-form)
 
 Traditional form libraries force you to register every input with JavaScript refs or state wrappers (`{...register('field')}`). **Native Form** works differently: it respects standard HTML forms and automatically discovers inputs directly from the DOM using standard `name` attributes.
 

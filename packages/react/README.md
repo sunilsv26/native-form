@@ -4,6 +4,7 @@ React hooks and components for Native Form — native HTML-first forms with zero
 
 [![npm version](https://img.shields.io/npm/v/@native-form/react.svg)](https://www.npmjs.com/package/@native-form/react)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/sunilsv26/native-form)
 
 `@native-form/react` wraps the framework-agnostic `@native-form/core` runtime with React-idiomatic hooks, providing uncontrolled DOM performance without unnecessary re-renders.
 

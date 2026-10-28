@@ -40,7 +40,17 @@ yarn add @native-form/react
 import React from "react";
 import { useForm, useField } from "@native-form/react";
 
-function InputField({ form, name, label, type = "text" }: { form: any; name: string; label: string; type?: string }) {
+function InputField({
+  form,
+  name,
+  label,
+  type = "text",
+}: {
+  form: any;
+  name: string;
+  label: string;
+  type?: string;
+}) {
   const field = useField({ form, name });
 
   return (
@@ -53,7 +63,7 @@ function InputField({ form, name, label, type = "text" }: { form: any; name: str
 }
 
 export function LoginForm() {
-  const { formRef, formState } = useForm({
+  const form = useForm({
     mode: "onBlur",
     onSubmit: (values) => {
       console.log("Submitted form values:", values);
@@ -64,12 +74,12 @@ export function LoginForm() {
   });
 
   return (
-    <form ref={formRef} noValidate>
-      <InputField name="email" label="Email Address" type="email" />
-      <InputField name="password" label="Password" type="password" />
+    <form ref={form.formRef} noValidate>
+      <InputField form={form} name="email" label="Email Address" type="email" />
+      <InputField form={form} name="password" label="Password" type="password" />
 
-      <button type="submit" disabled={formState.submitting}>
-        {formState.submitting ? "Signing in..." : "Sign In"}
+      <button type="submit" disabled={form.formState.submitting}>
+        {form.formState.submitting ? "Signing in..." : "Sign In"}
       </button>
     </form>
   );
@@ -140,6 +150,34 @@ const form = useForm({
 
 ## Advanced Hooks
 
+### Isolated Field State (`useField`)
+
+Use `useField` to create isolated, reusable input components that only re-render when their own field-level state changes (`error`, `touched`, `dirty`, `validating`), without re-rendering the parent form:
+
+```tsx
+import { useField, UseFormResult } from "@native-form/react";
+
+interface CustomInputProps {
+  form: UseFormResult;
+  name: string;
+  label: string;
+  type?: string;
+}
+
+export function CustomInput({ form, name, label, type = "text" }: CustomInputProps) {
+  const { error, touched, dirty, validating } = useField({ form, name });
+
+  return (
+    <div className="form-field">
+      <label>{label}</label>
+      <input name={name} type={type} aria-invalid={Boolean(error)} />
+      {validating && <span className="validating">Validating...</span>}
+      {touched && error && <span className="error">{error}</span>}
+    </div>
+  );
+}
+```
+
 ### Dynamic Arrays (`useFieldArray`)
 ```tsx
 import { useForm, useFieldArray } from "@native-form/react";
@@ -169,7 +207,10 @@ export function TeamForm() {
 }
 ```
 
-### Multi-Step Wizard (`useWizard`)
+### Multi-Step Wizard (`useWizard`) & Async Step Submission
+
+`useWizard` coordinates multi-step forms with step-level validation gating. `wizard.next()` returns `Promise<boolean>` indicating whether the current step passed validation before proceeding:
+
 ```tsx
 import { useForm, useWizard } from "@native-form/react";
 
@@ -184,16 +225,48 @@ export function WizardForm() {
     ],
   });
 
+  // Handling async per-step submission to a backend:
+  const handleNext = async () => {
+    // 1. Validates the current step's fields
+    const isValid = await wizard.next();
+    if (!isValid) return;
+
+    // 2. Submit partial step values to your backend API
+    const stepData = form.watch();
+    await fetch(`/api/save-step/${wizard.stepConfig.id}`, {
+      method: "POST",
+      body: JSON.stringify(stepData),
+    });
+  };
+
   return (
     <form ref={form.formRef}>
       <p>Step {wizard.currentStep + 1} of {wizard.totalSteps}: {wizard.stepConfig.title}</p>
 
-      {wizard.currentStep === 0 && <input name="fullName" placeholder="Full name" />}
-      {wizard.currentStep === 1 && <input name="address" placeholder="Address" />}
+      {wizard.currentStep === 0 && (
+        <>
+          <input name="fullName" placeholder="Full name" />
+          <input name="email" type="email" placeholder="Email" />
+        </>
+      )}
 
-      <button type="button" onClick={wizard.prev} disabled={wizard.isFirstStep}>Back</button>
+      {wizard.currentStep === 1 && (
+        <>
+          <input name="address" placeholder="Address" />
+          <input name="zipCode" placeholder="ZIP code" />
+        </>
+      )}
+
+      {wizard.currentStep === 2 && <p>Review and place your order.</p>}
+
+      <button type="button" onClick={wizard.prev} disabled={wizard.isFirstStep}>
+        Back
+      </button>
+
       {!wizard.isLastStep ? (
-        <button type="button" onClick={wizard.next}>Next Step</button>
+        <button type="button" onClick={handleNext}>
+          Save & Next
+        </button>
       ) : (
         <button type="submit">Place Order</button>
       )}

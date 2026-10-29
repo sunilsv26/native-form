@@ -1,4 +1,4 @@
 {
-  "installCommand": "pnpm install",
+  "installCommand": "pnpm install && pnpm run build",
   "startCommand": "pnpm --filter native-form-example-vite dev"
 }

@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Tests: 289 Passing](https://img.shields.io/badge/tests-289%20passing-success.svg)](https://github.com/sunilsv26/native-form)
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-Strict-3178c6.svg)](https://github.com/sunilsv26/native-form)
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/sunilsv26/native-form)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/sunilsv26/native-form?file=examples/vite/src/main.tsx)
 
 Traditional React form libraries force you to wrap every single field in state hooks or registration spreads (`{...register('email')}`) and custom `<Controller>` wrappers. 
 
@@ -19,7 +19,7 @@ Traditional React form libraries force you to wrap every single field in state h
 
 Test the interactive playground directly in your browser without cloning or installing anything:
 
-👉 **[Launch 1-Click Interactive Playground on StackBlitz](https://stackblitz.com/github/sunilsv26/native-form)**
+👉 **[Launch 1-Click Interactive Playground on StackBlitz](https://stackblitz.com/github/sunilsv26/native-form?file=examples/vite/src/main.tsx)**
 
 ---
 

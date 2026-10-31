@@ -157,17 +157,18 @@ export default function LoginPage() {
 
 ---
 
-## 📊 Feature & Conformance Matrix
+## 📊 Architecture & Design Comparison
 
-| Capability | Native Form | React Hook Form | Formik |
+| Architectural Feature | Native Form | React Hook Form | Formik |
 | :--- | :---: | :---: | :---: |
-| **0 Keystroke Re-renders** | ✅ **Yes (DOM-first)** | ⚠️ Partial (`mode: onSubmit`) | ❌ No (Renders on change) |
-| **Zero Field Registration** | ✅ **Automatic (DOM discovery)** | ❌ No (`{...register()}`) | ❌ No (`getFieldProps()`) |
-| **React 18 & 19 StrictMode Safe** | ✅ **Yes (Verified idempotency)** | ✅ Yes | ⚠️ Legacy warnings |
-| **Next.js SSR Hydration Safe** | ✅ **Yes (Zero mismatches)** | ✅ Yes | ⚠️ Component mismatches |
-| **Multi-Step Memory Preservation** | ✅ **Built-in (`preserveUnmountedValues`)** | ❌ Requires custom state | ❌ Requires custom state |
-| **Framework Agnostic Core** | ✅ **Yes (Vue, Svelte, Vanilla)** | ❌ React only | ❌ React only |
-| **Automatic Number/Bool Coercion** | ✅ **Yes (`typed` mode)** | ❌ No (returns strings) | ❌ No (manual parse) |
+| **Field Discovery Model** | **DOM MutationObserver** (Automatic) | Ref Binding (`{...register()}`) | React Context (`getFieldProps`) |
+| **Component Boilerplate** | **0 wrappers** (Standard HTML `<input>`) | `<Controller>` required for custom UI | `<Field>` / `<FastField>` wrappers |
+| **Keystroke Re-render Default** | **Zero re-renders** (Uncontrolled DOM) | Zero re-renders (Uncontrolled) | Re-renders on every change |
+| **DOM-to-Schema Type Coercion** | **Automatic** (`number`, `boolean`, `array`) | Per-field flag (`valueAsNumber`) | Manual conversion |
+| **Runtime Architecture** | **Framework-Agnostic** (Vanilla/Vue/Svelte) | React Only | React Only |
+| **Multi-Step Memory Gating** | **Built-in** (`preserveUnmountedValues`) | `shouldUnregister: false` | Manual state store |
+| **React 18 & 19 StrictMode** | ✅ **Verified idempotent lifecycle** | ✅ Supported | ⚠️ Legacy warnings |
+| **Next.js SSR Hydration** | ✅ **100% Native HTML match** | ✅ Supported | ⚠️ Component mismatches |
 
 ---
 

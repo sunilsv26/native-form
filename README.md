@@ -17,7 +17,7 @@ Traditional React form libraries force you to wrap every single field in state h
 
 ## ⚡️ Try It In 5 Seconds
 
-Test the zero-re-render playground directly in your browser without cloning or installing anything:
+Test the interactive playground directly in your browser without cloning or installing anything:
 
 👉 **[Launch 1-Click Interactive Playground on StackBlitz](https://stackblitz.com/github/sunilsv26/native-form)**
 
@@ -29,7 +29,7 @@ Test the zero-re-render playground directly in your browser without cloning or i
 | :--- | :--- |
 | ❌ Manually spread `{...register("email")}` on every input | ✅ Standard HTML: `<input name="email" />` |
 | ❌ Require `<Controller>` wrappers for custom UI components | ✅ Works directly on native DOM elements |
-| ❌ `<Controller>` wrappers re-render on every keystroke | ✅ Uncontrolled DOM inputs never trigger re-renders |
+| ❌ `<Controller>` wrappers re-render on every keystroke | ✅ Uncontrolled DOM inputs keep state in the browser |
 | ❌ Manual parsing or per-field flags for numbers and booleans | ✅ Automatic type coercion (`type="number"`, checkboxes) |
 | ❌ Custom Context setup required for multi-step memory | ✅ Built-in memory hydration across unmounted steps |
 

@@ -23,15 +23,15 @@ Test the zero-re-render playground directly in your browser without cloning or i
 
 ---
 
-## 🥊 The Difference: React Hook Form vs Native Form
+## 🥊 The Developer Experience Difference
 
-| React Hook Form / Formik | Native Form (This Library) |
+| Traditional Form Libraries (RHF / Formik) | Native Form (This Library) |
 | :--- | :--- |
 | ❌ Manually spread `{...register("email")}` on every input | ✅ Standard HTML: `<input name="email" />` |
-| ❌ Need `<Controller>` wrappers for custom UI components | ✅ Works directly on native DOM elements |
-| ❌ Keystrokes trigger React component render cycles | ✅ **0 virtual DOM re-renders** while typing |
-| ❌ Manual parsing for typed numbers and booleans | ✅ Auto-coerces `type="number"` and checkboxes |
-| ❌ Complex form contexts for multi-step wizards | ✅ Built-in memory hydration across unmounted steps |
+| ❌ Require `<Controller>` wrappers for custom UI components | ✅ Works directly on native DOM elements |
+| ❌ `<Controller>` wrappers re-render on every keystroke | ✅ Uncontrolled DOM inputs never trigger re-renders |
+| ❌ Manual parsing or per-field flags for numbers and booleans | ✅ Automatic type coercion (`type="number"`, checkboxes) |
+| ❌ Custom Context setup required for multi-step memory | ✅ Built-in memory hydration across unmounted steps |
 
 ```tsx
 // ❌ Traditional React Form Libraries (Boilerplate-heavy)

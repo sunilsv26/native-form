@@ -20,6 +20,8 @@ export function App() {
   const { formRef, formState } = useForm({
     schema: zodResolver(schema),
     serializationMode: "typed", // automatically coerces type="number" to number, checkbox to boolean
+    mode: "onSubmit", // Validates on submit, keeping keystrokes completely re-render free
+    reValidateMode: "onChange", // Once an error occurs, re-validates on keystroke to clear errors
     onSubmit: (values) => {
       setSubmittedData(values);
     },

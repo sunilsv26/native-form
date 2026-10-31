@@ -168,4 +168,44 @@ describe("useForm", () => {
 
     await view.cleanup();
   });
+
+  it("does not re-render component on keystrokes when mode is onSubmit and error state does not change", async () => {
+    let renderCount = 0;
+
+    function TestComponent() {
+      renderCount++;
+      const { formRef } = useForm({ mode: "onSubmit" });
+
+      return (
+        <form ref={formRef}>
+          <input name="username" defaultValue="" />
+        </form>
+      );
+    }
+
+    const view = await renderReact(<TestComponent />);
+    // Initial mount: render count is 2 due to React StrictMode in renderReact testUtils
+    const initialRenderCount = renderCount;
+
+    const input = view.container.querySelector("input[name='username']") as HTMLInputElement;
+
+    await act(async () => {
+      input.value = "John";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    const rendersAfterDirty = renderCount;
+
+    // Subsequent keystrokes while dirty do NOT re-render!
+    await act(async () => {
+      input.value = "John Doe";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(renderCount).toBe(rendersAfterDirty);
+
+    await view.cleanup();
+  });
 });

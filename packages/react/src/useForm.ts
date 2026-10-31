@@ -126,6 +126,7 @@ export function useForm<
 
     const initialFormState = runtime.getFormState();
     setFormState(initialFormState);
+    const lastFormStateRef = { current: initialFormState };
     if (selectorRef.current) {
       selectedRef.current = selectorRef.current(initialFormState);
     }
@@ -144,7 +145,22 @@ export function useForm<
           setFormState(nextFormState);
         }
       } else {
-        setFormState(nextFormState);
+        // By default, only trigger a React re-render if form status flags or validation
+        // errors change. Keystroke value changes are uncontrolled in the DOM and do NOT
+        // trigger virtual DOM re-renders unless an error status transitions.
+        const prev = lastFormStateRef.current;
+        const hasStatusChange =
+          prev.submitting !== nextFormState.submitting ||
+          prev.validating !== nextFormState.validating ||
+          prev.valid !== nextFormState.valid ||
+          prev.dirty !== nextFormState.dirty ||
+          prev.touched !== nextFormState.touched ||
+          !shallowEqual(prev.errors, nextFormState.errors);
+
+        if (hasStatusChange) {
+          lastFormStateRef.current = nextFormState;
+          setFormState(nextFormState);
+        }
       }
     });
 

@@ -64,9 +64,9 @@ export function App() {
       </div>
 
       <p style={{ color: "#64748b", fontSize: 14, margin: "0 0 24px" }}>
-        Type in the inputs below. Notice how the{" "}
-        <strong style={{ color: "#0284c7" }}>Re-renders counter stays at 1</strong>{" "}
-        even while typing!
+        Type in the inputs below. Notice how{" "}
+        <strong style={{ color: "#0284c7" }}>typing never increments the counter</strong>!{" "}
+        The form only re-renders when status transitions (like first edit or validation errors).
       </p>
 
       <form
@@ -259,7 +259,5 @@ export function App() {
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
+  <App />
 );

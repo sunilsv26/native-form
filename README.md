@@ -176,7 +176,6 @@ export default function LoginPage() {
 Contributions, issues, and feature requests are welcome!
 
 - **Report a Bug or Request a Feature**: Open an issue on [GitHub Issues](https://github.com/sunilsv26/native-form/issues)
-- **Discussion & Architecture**: Join the conversation in [docs/FEEDBACKS.md](docs/FEEDBACKS.md)
 - **Contribution Guide**: Read our [CONTRIBUTING.md](docs/CONTRIBUTING.md) to set up the local monorepo and run tests.
 
 ---

@@ -11,17 +11,12 @@ const schema = z.object({
   newsletter: z.boolean().optional(),
 });
 
-let renderCount = 0;
-
 export function App() {
-  renderCount++;
   const [submittedData, setSubmittedData] = useState<any>(null);
 
   const { formRef, formState } = useForm({
     schema: zodResolver(schema),
     serializationMode: "typed", // automatically coerces type="number" to number, checkbox to boolean
-    mode: "onSubmit", // Validates on submit, keeping keystrokes completely re-render free
-    reValidateMode: "onChange", // Once an error occurs, re-validates on keystroke to clear errors
     onSubmit: (values) => {
       setSubmittedData(values);
     },
@@ -59,14 +54,13 @@ export function App() {
             border: "1px solid #bae6fd",
           }}
         >
-          Re-renders: {renderCount}
+          Zero Registration
         </span>
       </div>
 
       <p style={{ color: "#64748b", fontSize: 14, margin: "0 0 24px" }}>
-        Type in the inputs below. Notice how{" "}
-        <strong style={{ color: "#0284c7" }}>typing never increments the counter</strong>!{" "}
-        The form only re-renders when status transitions (like first edit or validation errors).
+        Write plain HTML inputs with standard <code style={{ color: "#0284c7" }}>name</code> attributes.
+        No <code style={{ color: "#ef4444" }}>{'{...register()}'}</code> or custom Controller wrappers needed!
       </p>
 
       <form

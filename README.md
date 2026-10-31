@@ -1,6 +1,6 @@
 # Native Form
 
-> **The Zero-Boilerplate, Zero-Re-Render Form Engine for Modern Web Apps.**
+> **Zero-Registration, Native HTML-First Form Engine for Modern Web Apps.**
 
 [![npm version](https://img.shields.io/npm/v/@native-form/core.svg?style=flat&color=0284c7)](https://www.npmjs.com/package/@native-form/core)
 [![npm downloads](https://img.shields.io/npm/dw/@native-form/core.svg?style=flat&color=10b981)](https://www.npmjs.com/package/@native-form/core)
@@ -11,7 +11,7 @@
 
 Traditional React form libraries force you to wrap every single field in state hooks or registration spreads (`{...register('email')}`) and custom `<Controller>` wrappers. 
 
-**Native Form** flips the paradigm: it treats the browser's native HTML5 DOM as the single source of truth. Form controls are automatically discovered via standard `name` attributes using `MutationObserver`, giving you **zero keystroke re-renders**, pure HTML JSX, and automatic typed schema validation.
+**Native Form** flips the paradigm: it treats the browser's native HTML5 DOM as the single source of truth. Form controls are automatically discovered via standard `name` attributes using `MutationObserver`, giving you **uncontrolled DOM performance**, pure HTML JSX, and automatic typed schema validation.
 
 ---
 
@@ -161,9 +161,9 @@ export default function LoginPage() {
 
 | Architectural Feature | Native Form | React Hook Form | Formik |
 | :--- | :---: | :---: | :---: |
-| **Field Discovery Model** | **DOM MutationObserver** (Automatic) | Ref Binding (`{...register()}`) | React Context (`getFieldProps`) |
+| **Field State Model** | **Uncontrolled DOM-First** | Ref Binding (`{...register()}`) | React Context (`getFieldProps`) |
 | **Component Boilerplate** | **0 wrappers** (Standard HTML `<input>`) | `<Controller>` required for custom UI | `<Field>` / `<FastField>` wrappers |
-| **Keystroke Re-render Default** | **Zero re-renders** (Uncontrolled DOM) | Zero re-renders (Uncontrolled) | Re-renders on every change |
+| **Re-render Profile** | **Minimal** (Uncontrolled DOM) | Minimal (Uncontrolled) | Re-renders on every change |
 | **DOM-to-Schema Type Coercion** | **Automatic** (`number`, `boolean`, `array`) | Per-field flag (`valueAsNumber`) | Manual conversion |
 | **Runtime Architecture** | **Framework-Agnostic** (Vanilla/Vue/Svelte) | React Only | React Only |
 | **Multi-Step Memory Gating** | **Built-in** (`preserveUnmountedValues`) | `shouldUnregister: false` | Manual state store |

@@ -325,9 +325,9 @@ In React 18 and 19 development mode, effects are mounted, unmounted, and remount
 
 | Architectural Feature | Native Form (`@native-form/react`) | React Hook Form | Formik |
 | :--- | :---: | :---: | :---: |
-| **Field Discovery Model** | **DOM MutationObserver** (Automatic) | Ref Binding (`{...register()}`) | React Context (`getFieldProps`) |
+| **Field State Model** | **Uncontrolled DOM-First** | Ref Binding (`{...register()}`) | React Context (`getFieldProps`) |
 | **Component Boilerplate** | **0 wrappers** (Standard HTML `<input>`) | `<Controller>` required for custom UI | `<Field>` / `<FastField>` wrappers |
-| **Keystroke Re-render Default** | **Zero re-renders** (Uncontrolled DOM) | Zero re-renders (Uncontrolled) | Re-renders on every change |
+| **Re-render Profile** | **Minimal** (Uncontrolled DOM) | Minimal (Uncontrolled) | Re-renders on every change |
 | **DOM-to-Schema Type Coercion** | **Automatic** (`number`, `boolean`, `array`) | Per-field flag (`valueAsNumber`) | Manual conversion |
 | **Runtime Architecture** | **Framework-Agnostic** (Core runtime) | React Only | React Only |
 | **Multi-Step Memory Gating** | **Built-in** (`preserveUnmountedValues`) | `shouldUnregister: false` | Manual state store |

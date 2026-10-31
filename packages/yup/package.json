@@ -1,6 +1,6 @@
 {
   "name": "@native-form/yup",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Yup schema validation adapter for Native Form.",
   "license": "MIT",
   "type": "module",

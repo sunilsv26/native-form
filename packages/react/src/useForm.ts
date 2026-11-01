@@ -1,4 +1,5 @@
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { useIsomorphicLayoutEffect } from "./useIsomorphicLayoutEffect";
 
 import {
   InferSchemaOutput,
@@ -94,7 +95,7 @@ export function useForm<
     options.selector ? options.selector(formState) : formState,
   );
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!formRef.current) {
       return;
     }
@@ -171,7 +172,7 @@ export function useForm<
     };
   }, []);
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (runtimeRef.current) {
       runtimeRef.current.setOptions({
         mode: options.mode,

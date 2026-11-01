@@ -167,8 +167,12 @@ export default function LoginPage() {
 | **DOM-to-Schema Type Coercion** | **Automatic** (`number`, `boolean`, `array`) | Per-field flag (`valueAsNumber`) | Manual conversion |
 | **Runtime Architecture** | **Framework-Agnostic** (Vanilla/Vue/Svelte) | React Only | React Only |
 | **Multi-Step Memory Gating** | **Built-in** (`preserveUnmountedValues`) | `shouldUnregister: false` | Manual state store |
-| **React 18 & 19 StrictMode** | ✅ **Verified idempotent lifecycle** | ✅ Supported | ⚠️ Legacy warnings |
-| **Next.js SSR Hydration** | ✅ **100% Native HTML match** | ✅ Supported | ⚠️ Component mismatches |
+| **React 18 & 19 StrictMode** | ✅ **Verified idempotent lifecycle** ([tests](packages/react/test/StrictModeAndSSR.test.tsx)) | ✅ Supported | ⚠️ Legacy warnings |
+| **Next.js SSR Hydration** | ✅ **100% Native HTML match** ([tests](packages/react/test/ssr.test.tsx)) | ✅ Supported | ⚠️ Component mismatches |
+
+> 🔍 **Auditable Test Proof**: All lifecycle and rendering claims are backed by automated tests:
+> - **React 18/19 StrictMode**: Mount $\to$ unmount $\to$ remount idempotency, 1:1 event listener detachment, observer disconnects, and in-flight timer cancellations are verified in [`packages/react/test/StrictModeAndSSR.test.tsx`](packages/react/test/StrictModeAndSSR.test.tsx).
+> - **SSR & Hydration**: Pure Node SSR rendering (`renderToString`) without DOM globals (`window`/`document`), zero `useLayoutEffect` warnings, client hydration (`hydrateRoot`) with zero mismatches, and dynamic post-hydration field discovery are verified in [`packages/react/test/ssr.test.tsx`](packages/react/test/ssr.test.tsx) and [`packages/react/test/StrictModeAndSSR.test.tsx`](packages/react/test/StrictModeAndSSR.test.tsx).
 
 ---
 

@@ -310,14 +310,19 @@ const {
 
 ## React 18/19 StrictMode & Next.js SSR Compatibility
 
+> **Automated Test Proof**: Every claim below is verified by automated test suites in:
+> - [`test/StrictModeAndSSR.test.tsx`](test/StrictModeAndSSR.test.tsx) (StrictMode double-mount idempotency, 100% listener/observer cleanup, client hydration, and dynamic post-hydration fields)
+> - [`test/ssr.test.tsx`](test/ssr.test.tsx) (Pure Node SSR execution without `window` or `document` and zero `useLayoutEffect` warnings)
+
 ### 1. React 18 & 19 StrictMode (Double Mount)
 In React 18 and 19 development mode, effects are mounted, unmounted, and remounted immediately to detect resource cleanup issues. `useForm` is fully idempotent:
-- **Clean Teardown**: Upon unmount, `runtime.unmount()` removes all DOM event listeners (`submit`, `input`, `change`, `blur`, `reset`), disconnects the internal `MutationObserver`, aborts active validation requests via `AbortController`, and clears all debounce timers.
-- **Fresh Reconnection**: On remount, a fresh runtime instance attaches to `formRef.current` and synchronizes with the DOM without duplicate event firing or state corruption.
+- **Clean Teardown**: Upon unmount, `runtime.unmount()` removes all DOM event listeners (`submit`, `input`, `change`, `blur`, `reset`), disconnects internal `MutationObserver` instances, aborts active validation requests via `AbortController`, and clears all debounce timers.
+- **Fresh Reconnection**: On remount, a fresh runtime instance attaches to `formRef.current` and synchronizes with the DOM without duplicate event firing or state corruption ([verified: submit fires exactly once](test/StrictModeAndSSR.test.tsx)).
 
 ### 2. Next.js & Remix SSR (Server-Side Rendering)
-- **Zero Hydration Mismatch**: In SSR frameworks (Next.js App/Pages Router, Remix, Astro), standard `<form>` and `<input>` elements render directly into pure HTML on the server. `useForm` injects zero virtual DOM wrappers or client-only attributes, ensuring 100% hydration consistency.
-- **Synchronous Discovery on Mount**: When the client hydrates and `useLayoutEffect` runs, `Discovery.discover(form)` synchronously indexes all inputs already present in the server-rendered HTML before starting the `MutationObserver` for subsequent dynamic DOM mutations.
+- **Zero Hydration Mismatch**: In SSR frameworks (Next.js App/Pages Router, Remix, Astro), standard `<form>` and `<input>` elements render directly into pure HTML on the server. `useForm` injects zero virtual DOM wrappers or client-only attributes, ensuring 100% hydration consistency ([verified via `ReactDOMClient.hydrateRoot`](test/StrictModeAndSSR.test.tsx)).
+- **Safe Server Execution**: Uses isomorphic effect hooks so `renderToString` executes in Node environments without accessing DOM globals (`window` or `document`), emitting zero `"useLayoutEffect does nothing on the server"` warnings ([verified in Node SSR](test/ssr.test.tsx)).
+- **Dynamic Post-Hydration Fields**: Conditional inputs mounted after client hydration (e.g. toggled by React state) are automatically discovered by `MutationObserver` and validated against schemas without requiring manual re-registration ([verified post-hydration](test/StrictModeAndSSR.test.tsx)).
 
 ---
 
